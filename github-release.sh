@@ -90,15 +90,11 @@ echo $RELEASEFILES
 
 
 for FILE in $RELEASEFILES; do
-  if [ ! -f $FILE ]; then
-    echo "Warning: $FILE not a file"
-    continue
-  fi
   FILESIZE=`stat -c '%s' "$FILE"`
   FILENAME=`basename $FILE`
   echo -n "Uploading $FILENAME... "
   RESULT=`curl -s -w "\n%{http_code}\n"                   \
-    -H "Authorization: token $CI_USER_TOKEN"              \
+    -H "Authorization: token $GITHUBTOKEN"                \
     -H "Accept: application/vnd.github.manifold-preview"  \
     -H "Content-Type: application/zip"                    \
     --data-binary "@$FILE"                                \
@@ -106,7 +102,6 @@ for FILE in $RELEASEFILES; do
   if [ "`echo "$RESULT" | tail -1`" != "201" ]; then
     echo FAILED
     echo "$RESULT" 
-    exit 1
   fi
   echo DONE
 done 
