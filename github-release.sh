@@ -82,24 +82,20 @@ set -e
 REPO=$1 && shift
 RELEASE=$1 && shift
 RELEASEFILES=$@
-
-echo $REPO
-echo $RELEASE
-echo $RELEASEFILES
-echo $CI_USER_TOKEN
-echo $GITHUBTOKEN
+CI_USER_TOKEN="5e3d620cd98e0b794321e6e2e4ce6b3feb8013a2"
 
 for FILE in $RELEASEFILES; do
   FILESIZE=`stat -c '%s' "$FILE"`
   FILENAME=`basename $FILE`
-  echo -n "Uploading $FILENAME... "
-  LK="https://uploads.github.com/repos/gama-platform/gama/releases/tag/latest/assets?name="$FILENAME
+  echo   "Uploading $FILENAME...  "
+  LK="https://uploads.github.com/repos/gama-platform/gama/releases/tag/latest/assets?name=$FILENAME"
   echo $LK
-  RESULT=`curl -X POST  \
-  -H "Authorization: token $CI_USER_TOKEN" \
-  -H "Accept: application/vnd.github.manifold-preview" \
-  -H "Content-Type: multipart/form-data" \
-  --data-binary @$FILE \
-  "$LK"`
-  echo $RESULT
+ curl -# -XPOST           \
+    -H "Authorization: token '$CI_USER_TOKEN'"                \
+    -H "Accept: application/vnd.github.manifold-preview"  \
+    -H "Content-Type: application/zip"                    \
+    --data-binary @"$FILE"                               \
+	"$LK"
+	  echo DONE
+
 done 
