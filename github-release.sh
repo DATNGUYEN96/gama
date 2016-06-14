@@ -86,7 +86,8 @@ RELEASEFILES=$@
 echo $REPO
 echo $RELEASE
 echo $RELEASEFILES
-
+echo $CI_USER_TOKEN
+echo $GITHUBTOKEN
 
 
 for FILE in $RELEASEFILES; do
@@ -95,10 +96,11 @@ for FILE in $RELEASEFILES; do
   echo -n "Uploading $FILENAME... "
   
   echo "https://uploads.github.com/repos/gama-platform/gama/releases/latest/assets?name=$FILENAME&size=$FILESIZE"
-  curl -H "Authorization: token $CI_USER_TOKEN" \
-       -H "Accept: application/vnd.github.manifold-preview" \
-       -H "Content-Type: application/zip" \
-       --data-binary @$FILE \
-	   "https://uploads.github.com/repos/gama-platform/gama/releases/latest/assets?name=$FILENAME"  
-  echo DONE
+  RESULT=`curl -s -X POST \
+  -H "Authorization: token $CI_USER_TOKEN" \
+  -H "Accept: application/vnd.github.manifold-preview" \
+  -H "Content-Type: application/zip" \
+  --data-binary @"$FILE" \
+  "https://uploads.github.com/repos/gama-platform/gama/releases/latest/assets?name=$FILENAME"`
+  echo $RESULT
 done 
