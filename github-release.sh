@@ -94,12 +94,13 @@ for FILE in $RELEASEFILES; do
   FILENAME=`basename $FILE`
   echo -n "Uploading $FILENAME... "
   RESULT=`curl -s -w "\n%{http_code}\n"                   \
-    -H "Authorization: token $CI_USER_TOKEN"                \
+    -H "Authorization: token $CI_USER_TOKEN"              \
     -H "Accept: application/vnd.github.manifold-preview"  \
     -H "Content-Type: application/zip"                    \
     --data-binary "@$FILE"                                \
     "https://uploads.github.com/repos/gama-platform/gama/releases/latest/assets?name=$FILENAME&size=$FILESIZE"`
-  if [ "`echo "$RESULT" | tail -1`" != "201" ]; then
+  if [ "`echo "$RESULT" | tail -1`" != "201" ]; then  
+	echo "https://uploads.github.com/repos/gama-platform/gama/releases/latest/assets?name=$FILENAME&size=$FILESIZE"
     echo FAILED
     echo "$RESULT" 
   fi
