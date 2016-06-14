@@ -94,7 +94,7 @@ for FILE in $RELEASEFILES; do
   FILENAME=`basename $FILE`
   echo -n "Uploading $FILENAME... "
   RESULT=`curl -s -w "\n%{http_code}\n"                   \
-    -H "Authorization: token $GITHUBTOKEN"                \
+    -H "Authorization: token $CI_USER_TOKEN"                \
     -H "Accept: application/vnd.github.manifold-preview"  \
     -H "Content-Type: application/zip"                    \
     --data-binary "@$FILE"                                \
