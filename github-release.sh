@@ -83,6 +83,6 @@ REPO=$1 && shift
 RELEASE=$1 && shift
 RELEASEFILES=$@
 
-echo REPO
-echo RELEASE
-echo RELEASEFILES
+echo $REPO
+echo $RELEASE
+echo $RELEASEFILES
