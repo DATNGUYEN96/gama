@@ -114,9 +114,9 @@ if [ $check -ge 5 ]; then
 		  LK1="https://api.github.com/repos/gama-platform/gama/releases/assets/$theid"
 		  echo $LK1
 		  RESULT1=`curl  -s -X  "DELETE"                \
-			-H "Authorization: token $CI_USER_TOKEN"   \
+			-H "Authorization: token $HQN_TOKEN"   \
 			"$LK1"`
-			
+			echo $RESULT1
 		fi
 	done 
 fi
@@ -131,7 +131,7 @@ for FILE in $RELEASEFILES; do
   LK="https://uploads.github.com/repos/gama-platform/gama/releases/$RELEASEID/assets?name=$FILENAME"
   echo $LK
   RESULT=`curl -s -w  "\n%{http_code}\n"                   \
-    -H "Authorization: token $CI_USER_TOKEN"                \
+    -H "Authorization: token $HQN_TOKEN"                \
     -H "Accept: application/vnd.github.manifold-preview"  \
     -H "Content-Type: application/zip"                    \
     --data-binary "@$FILE"                                \
