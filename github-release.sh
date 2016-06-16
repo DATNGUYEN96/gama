@@ -82,15 +82,25 @@ set -e
 REPO=$1 && shift
 RELEASE=$1 && shift
 RELEASEFILES=$@
-RELEASEID=3428703
 
 
 
 
+echo "Getting info of latest tag..."
+echo 
+LK="https://api.github.com/repos/gama-platform/gama/releases/tags/latest"
+
+  RESULT=` curl -s -X GET \
+  -H "X-Parse-Application-Id: sensitive" \
+  -H "X-Parse-REST-API-Key: sensitive" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"value"}' \
+    "$LK"`
+RELEASEID=`echo "$RESULT" | sed -ne 's/^  "id": \(.*\),$/\1/p'`
 
 
   LK="https://api.github.com/repos/gama-platform/gama/releases/$RELEASEID/assets"
-  echo $LK
+  
   RESULT=` curl -s -X GET \
   -H "X-Parse-Application-Id: sensitive" \
   -H "X-Parse-REST-API-Key: sensitive" \
@@ -99,9 +109,10 @@ RELEASEID=3428703
     "$LK"`
 	
 check=${#RESULT}
-echo $check
+
 if [ $check -ge 5 ]; then
-	echo "deleting"
+	echo "Remove old files..."
+	echo
 	json=$RESULT
 	prop='id'
 	
@@ -112,16 +123,14 @@ if [ $check -ge 5 ]; then
 	for theid in $assets; do
 		if [ "$theid" != "id:" ] &&  [ "$theid"  != "19405477" ]; then
 		  LK1="https://api.github.com/repos/gama-platform/gama/releases/assets/$theid"
-		  echo $LK1
 		  RESULT1=`curl  -s -X  "DELETE"                \
 			-H "Authorization: token $HQN_TOKEN"   \
 			"$LK1"`
-			echo $RESULT1
 		fi
 	done 
 fi
 
-echo $RELEASEFILES
+
 
 
 for FILE in $RELEASEFILES; do
@@ -136,8 +145,6 @@ for FILE in $RELEASEFILES; do
     -H "Content-Type: application/zip"                    \
     --data-binary "@$FILE"                                \
     "$LK"`
-	
-	echo $RESULT
 
 done 
 
