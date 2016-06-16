@@ -86,6 +86,10 @@ thePATH="/home/travis/.m2/repository/msi/gama/msi.gama.application.product/1.7.0
 
 RELEASEFILES="$thePATH-linux.gtk.x86.zip $thePATH-linux.gtk.x86_64.zip $thePATH-macosx.cocoa.x86_64.zip $thePATH-win32.win32.x86.zip $thePATH-win32.win32.x86_64.zip"
 echo $RELEASEFILES
+
+
+
+
 echo "Getting info of latest tag..."
 echo 
 LK="https://api.github.com/repos/gama-platform/gama/releases/tags/$RELEASE"
@@ -139,14 +143,14 @@ for FILE in $RELEASEFILES; do
   FILENAME=`basename $FILE`
   echo   "Uploading $FILENAME...  "
   LK="https://uploads.github.com/repos/gama-platform/gama/releases/$RELEASEID/assets?name=$FILENAME"
-  echo $LK
+  
   RESULT=`curl -s -w  "\n%{http_code}\n"                   \
     -H "Authorization: token $HQN_TOKEN"                \
     -H "Accept: application/vnd.github.manifold-preview"  \
     -H "Content-Type: application/zip"                    \
     --data-binary "@$FILE"                                \
     "$LK"`
-
+	echo $RESULT
 done 
 
 echo DONE
