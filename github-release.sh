@@ -126,6 +126,7 @@ if [ $check -ge 5 ]; then
 		  RESULT1=`curl  -s -X  "DELETE"                \
 			-H "Authorization: token $HQN_TOKEN"   \
 			"$LK1"`
+			echo $RESULT1
 		fi
 	done 
 fi
