@@ -89,11 +89,6 @@ RELEASEID=3428703
 
 
 
-function jsonval {
-    temp=`echo $json | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w $prop`
-    echo ${temp##*|}
-}
-
   LK="https://api.github.com/repos/gama-platform/gama/releases/$RELEASEID/assets"
   echo $LK
   RESULT=` curl -s -X GET \
@@ -109,7 +104,10 @@ if [ $check -ge 5 ]; then
 	echo "deleting"
 	json=$RESULT
 	prop='id'
-	assets=`jsonval`
+	
+    temp=`echo $json | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w $prop`
+    
+	assets=`echo ${temp##*|}`
 
 	for theid in $assets; do
 		if [ "$theid" != "id:" ] &&  [ "$theid"  != "19405477" ]; then
