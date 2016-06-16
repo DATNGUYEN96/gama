@@ -79,11 +79,11 @@
 
 set -e
 
-REPO=$1 && shift
-RELEASE=$1 && shift
-RELEASEFILES=$@
+REPO="gama-platform/gama"
+RELEASE="latest"
+thePATH="$HOME/.m2/repository/msi/gama/msi.gama.application.product/1.7.0-SNAPSHOT/msi.gama.application.product-1.7.0-SNAPSHOT-"
 
-
+RELEASEFILES="$thePATH-linux.gtk.x86.zip $thePATH-linux.gtk.x86_64.zip $thePATH-macosx.cocoa.x86_64.zip $thePATH-win32.win32.x86.zip $thePATH-win32.win32.x86_64.zip "
 
 
 echo "Getting info of latest tag..."

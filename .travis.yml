@@ -13,7 +13,7 @@ cache:
   directories:
   - "$HOME/.m2"
 script: sh ./build.sh
-after_success: sh ./github-release.sh "gama-platform/gama" "latest" $HOME/.m2/repository/msi/gama/msi.gama.application.product/1.7.0-SNAPSHOT/msi.gama.application.product-1.7.0-SNAPSHOT-*.zip
+after_success: sh ./github-release.sh
 branches:
   only:
     - travis-test
