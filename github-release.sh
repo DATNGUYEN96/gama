@@ -82,20 +82,65 @@ set -e
 REPO=$1 && shift
 RELEASE=$1 && shift
 RELEASEFILES=$@
-CI_USER_TOKEN="5e3d620cd98e0b794321e6e2e4ce6b3feb8013a2"
+RELEASEID=3428703
+
+
+
+
+
+
+function jsonval {
+    temp=`echo $json | sed 's/\\\\\//\//g' | sed 's/[{}]//g' | awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | sed 's/\"\:\"/\|/g' | sed 's/[\,]/ /g' | sed 's/\"//g' | grep -w $prop`
+    echo ${temp##*|}
+}
+
+  LK="https://api.github.com/repos/gama-platform/gama/releases/$RELEASEID/assets"
+  echo $LK
+  RESULT=` curl -s -X GET \
+  -H "X-Parse-Application-Id: sensitive" \
+  -H "X-Parse-REST-API-Key: sensitive" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"value"}' \
+    "$LK"`
+	
+check=${#RESULT}
+echo $check
+if [ $check -ge 5 ]; then
+	echo "deleting"
+	json=$RESULT
+	prop='id'
+	assets=`jsonval`
+
+	for theid in $assets; do
+		if [ "$theid" != "id:" ] &&  [ "$theid"  != "19405477" ]; then
+		  LK1="https://api.github.com/repos/gama-platform/gama/releases/assets/$theid"
+		  echo $LK1
+		  RESULT1=`curl  -s -X  "DELETE"                \
+			-H "Authorization: token $CI_USER_TOKEN"   \
+			"$LK1"`
+			
+		fi
+	done 
+fi
+
+echo $RELEASEFILES
+
 
 for FILE in $RELEASEFILES; do
   FILESIZE=`stat -c '%s' "$FILE"`
   FILENAME=`basename $FILE`
   echo   "Uploading $FILENAME...  "
-  LK="https://uploads.github.com/repos/gama-platform/gama/releases/tag/latest/assets?name=$FILENAME"
+  LK="https://uploads.github.com/repos/gama-platform/gama/releases/$RELEASEID/assets?name=$FILENAME"
   echo $LK
- curl -# -XPOST           \
-    -H "Authorization: token '$CI_USER_TOKEN'"                \
+  RESULT=`curl -s -w  "\n%{http_code}\n"                   \
+    -H "Authorization: token $CI_USER_TOKEN"                \
     -H "Accept: application/vnd.github.manifold-preview"  \
     -H "Content-Type: application/zip"                    \
-    --data-binary @"$FILE"                               \
-	"$LK"
-	  echo DONE
+    --data-binary "@$FILE"                                \
+    "$LK"`
+	
+	echo $RESULT
 
 done 
+
+echo DONE
