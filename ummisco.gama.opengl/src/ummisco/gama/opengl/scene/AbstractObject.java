@@ -1,133 +1,115 @@
 
 /*********************************************************************************************
  *
+ * 'AbstractObject.java, in plugin ummisco.gama.opengl, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'AbstractObject.java', in plugin 'msi.gama.jogl2', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package ummisco.gama.opengl.scene;
 
-import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
 
-import com.jogamp.opengl.GL;
-import com.jogamp.opengl.GL2;
-import com.jogamp.opengl.util.texture.Texture;
-
-import msi.gama.metamodel.agent.AgentIdentifier;
+import msi.gama.common.geometry.AxisAngle;
+import msi.gama.common.geometry.Scaling3D;
 import msi.gama.metamodel.shape.GamaPoint;
+import msi.gama.util.GamaColor;
+import msi.gama.util.GamaMaterial;
 import msi.gama.util.file.GamaImageFile;
 import msi.gaml.statements.draw.DrawingAttributes;
-import ummisco.gama.opengl.JOGLRenderer;
+import msi.gaml.statements.draw.FileDrawingAttributes;
 
 public abstract class AbstractObject {
 
-	static int index = 0;
-	static Color pickedColor = Color.red;
+	public static enum DrawerType {
+		GEOMETRY, STRING, FIELD
+	}
 
 	protected final DrawingAttributes attributes;
-	private final LayerObject layer;
-	protected Double alpha;
-	public final int pickingIndex = index++;
-	private boolean picked = false;
-	protected final Texture[] textures;
+	protected final int[] textures;
 
-	public AbstractObject(final DrawingAttributes attributes, final LayerObject layer, final Texture[] textures) {
+	public AbstractObject(final DrawingAttributes attributes) {
 		this.attributes = attributes;
-		this.layer = layer;
-		this.alpha = layer == null ? 1 : layer.alpha;
-		this.textures = textures;
+		if (attributes.getTextures() != null) {
+			textures = new int[attributes.getTextures().size()];
+			Arrays.fill(textures, OpenGL.NO_TEXTURE);
+		} else
+			textures = null;
 	}
 
-	public void dispose(final GL gl) {
-		if (textures == null) {
-			return;
-		}
+	public abstract DrawerType getDrawerType();
+
+	public int[] getTexturesId(final OpenGL gl) {
+		if (textures == null) { return null; }
+		// final int[] result = new int[textures.length];
 		for (int i = 0; i < textures.length; i++) {
-			textures[i] = null;
+			final int t = getTexture(gl, i);
+			textures[i] = t == OpenGL.NO_TEXTURE ? 0 : t;
 		}
+		return textures;
 	}
 
-	public AbstractObject(final DrawingAttributes attributes, final LayerObject layer) {
-		this(attributes, layer, attributes.getTextures() != null ? new Texture[attributes.getTextures().size()] : null);
+	/**
+	 * Returns the id of the texture at index 1
+	 * 
+	 * @param gl
+	 * @return the id of the texture or Integer.MAX_VALUE if none is defined
+	 */
+	public int getAlternateTexture(final OpenGL gl) {
+		return getTexture(gl, 1);
 	}
 
-	public Texture getTexture(final GL gl, final JOGLRenderer renderer, final int order) {
-		if (textures == null) {
-			return null;
-		}
-		if (order < 0 || order > textures.length - 1) {
-			return null;
-		}
-		if (textures[order] == null) {
-			textures[order] = computeTexture(gl, renderer, order);
+	/**
+	 * Returns the id of the texture at index 0
+	 * 
+	 * @param gl
+	 * @return the id of the texture or Integer.MAX_VALUE if none is defined
+	 */
+	public int getPrimaryTexture(final OpenGL gl) {
+		return getTexture(gl, 0);
+	}
+
+	private int getTexture(final OpenGL gl, final int order) {
+		if (textures == null) { return OpenGL.NO_TEXTURE; }
+		if (order < 0 || order > textures.length - 1) { return OpenGL.NO_TEXTURE; }
+		if (isAnimated() || textures[order] == OpenGL.NO_TEXTURE) {
+			Object obj = null;
+			try {
+				obj = attributes.getTextures().get(order);
+			} catch (final IndexOutOfBoundsException e) {// do nothing. Can arrive in the new shader architecture
+			}
+			if (obj instanceof BufferedImage) {
+				textures[order] = gl.getTexture((BufferedImage) obj).getTextureObject();
+			} else if (obj instanceof GamaImageFile) {
+				final FileDrawingAttributes fd = (FileDrawingAttributes) attributes;
+				textures[order] = gl.getTexture((GamaImageFile) obj, fd.useCache()).getTextureObject();
+			}
 		}
 		return textures[order];
 	}
 
-	private Texture computeTexture(final GL gl, final JOGLRenderer renderer, final int order) {
-		final Object obj = attributes.getTextures().get(order);
-		if (obj instanceof BufferedImage) {
-			return renderer.getCurrentScene().getTexture(gl, (BufferedImage) obj);
-		} else if (obj instanceof GamaImageFile) {
-			return renderer.getCurrentScene().getTexture(gl, (GamaImageFile) obj);
-		}
-		return null;
-	}
-
-	public boolean hasSeveralTextures() {
-		return textures != null && textures.length > 1;
+	protected boolean isAnimated() {
+		return attributes.isAnimated();
 	}
 
 	public boolean isTextured() {
 		return textures != null && textures.length > 0;
 	}
 
-	public void draw(final GL2 gl, final ObjectDrawer drawer, final boolean isPicking) {
-		final JOGLRenderer renderer = drawer.renderer;
-		picked = renderer.getPickingState().isPicked(pickingIndex);
+	public final void draw(final OpenGL gl, final ObjectDrawer<AbstractObject> drawer, final boolean isPicking) {
 		if (isPicking)
-			gl.glLoadName(pickingIndex);
-		drawer.draw(gl, this);
-		if (picked && !renderer.getPickingState().isMenuOn()) {
-			renderer.getPickingState().setMenuOn(true);
-			// System.out.println("Object " + pickingIndex + " showing menu");
-			renderer.getSurface().selectAgent(attributes);
+			gl.registerForSelection(attributes.getIndex());
+		drawer.draw(this);
+		if (isPicking) {
+			gl.markIfSelected(attributes);
 		}
 	}
 
-	public Color getColor() {
-		if (picked) {
-			return pickedColor;
-		}
-		return attributes.color;
-	}
-
-	public double getZ_fighting_id() {
-		final AgentIdentifier id = attributes.getAgentIdentifier();
-		final double offset = id == null ? 0 : 1 / (double) (id.getIndex() + 10);
-		// final double offset = 0;
-		return (layer == null ? 0 : layer.getOrder()) + offset;
-	}
-
-	public double getLayerZ() {
-		return layer == null ? 0 : layer.getOffset().z;
-	}
-
-	public Double getAlpha() {
-		return alpha;
-	}
-
-	public void setAlpha(final Double alpha) {
-		this.alpha = alpha;
-	}
-
-	public void preload(final GL2 gl, final JOGLRenderer renderer) {
+	public GamaColor getColor() {
+		return attributes.getColor();
 	}
 
 	public boolean isFilled() {
@@ -135,30 +117,35 @@ public abstract class AbstractObject {
 	}
 
 	public GamaPoint getLocation() {
-		return attributes.location;
+		return attributes.getLocation();
 	}
 
-	public GamaPoint getDimensions() {
-		return attributes.size;
+	public Scaling3D getDimensions() {
+		return attributes.getSize();
 	}
 
-	public Color getBorder() {
+	public GamaColor getBorder() {
 		return attributes.getBorder();
 	}
 
-	public double getHeight() {
-		return attributes.getDepth();
+	public Double getHeight() {
+		return attributes.getHeight();
 	}
 
-	// public IAgent getAgent() {
-	// return attributes.getAgent();
-	// }
-
-	public double getRotationAngle() {
-		if (attributes.rotation == null || attributes.rotation.key == null) {
-			return 0;
-		}
-		// AD Change to a negative rotation to fix Issue #1514
-		return -attributes.rotation.key;
+	public AxisAngle getRotation() {
+		return attributes.getRotation();
 	}
+
+	public double getLineWidth() {
+		return attributes.getLineWidth();
+	}
+
+	public GamaMaterial getMaterial() {
+		return attributes.getMaterial();
+	}
+
+	public int getIndex() {
+		return attributes.getIndex();
+	}
+
 }

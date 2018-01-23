@@ -1,25 +1,30 @@
 /*********************************************************************************************
  *
+ * 'IPopulation.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'IPopulation.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.metamodel.population;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
 import com.google.common.base.Predicate;
+
 import msi.gama.common.interfaces.IStepable;
-import msi.gama.metamodel.agent.*;
-import msi.gama.metamodel.shape.*;
+import msi.gama.metamodel.agent.IAgent;
+import msi.gama.metamodel.agent.IMacroAgent;
+import msi.gama.metamodel.shape.ILocation;
+import msi.gama.metamodel.shape.IShape;
 import msi.gama.metamodel.topology.ITopology;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
-import msi.gama.util.*;
+import msi.gama.util.IContainer;
+import msi.gama.util.IList;
 import msi.gaml.species.ISpecies;
 import msi.gaml.statements.IExecutable;
 import msi.gaml.variables.IVariable;
@@ -32,19 +37,22 @@ import msi.gaml.variables.IVariable;
  * @todo Description
  *
  */
-public interface IPopulation extends Comparable<IPopulation>, IList<IAgent>, IStepable, IPopulationSet {
+public interface IPopulation<T extends IAgent>
+		extends Comparable<IPopulation<T>>, IList<T>, IStepable, IPopulationSet<T> {
 
 	public interface Listener {
 
-		public void notifyAgentRemoved(IPopulation pop, IAgent agent);
+		public void notifyAgentRemoved(IScope scope, IPopulation<? extends IAgent> pop, IAgent agent);
 
-		public void notifyAgentAdded(IPopulation pop, IAgent agent);
+		public void notifyAgentAdded(IScope scope, IPopulation<? extends IAgent> pop, IAgent agent);
 
-		public void notifyAgentsAdded(IPopulation pop, Collection agents);
+		public void notifyAgentsAdded(IScope scope, IPopulation<? extends IAgent> pop,
+				Collection<? extends IAgent> agents);
 
-		public void notifyAgentsRemoved(IPopulation pop, Collection agents);
+		public void notifyAgentsRemoved(IScope scope, IPopulation<? extends IAgent> pop,
+				Collection<? extends IAgent> agents);
 
-		public void notifyPopulationCleared(IPopulation pop);
+		public void notifyPopulationCleared(IScope scope, IPopulation<? extends IAgent> pop);
 
 	}
 
@@ -52,6 +60,7 @@ public interface IPopulation extends Comparable<IPopulation>, IList<IAgent>, ISt
 
 		/**
 		 * Method apply()
+		 * 
 		 * @see com.google.common.base.Predicate#apply(java.lang.Object)
 		 */
 		@Override
@@ -61,33 +70,42 @@ public interface IPopulation extends Comparable<IPopulation>, IList<IAgent>, ISt
 
 	}
 
-	public abstract void createVariablesFor(IScope scope, IAgent agent) throws GamaRuntimeException;
+	public static IPopulation<? extends IAgent> createEmpty(final ISpecies species) {
+		return new GamaPopulation<IAgent>(null, species);
+	}
+
+	public abstract void createVariablesFor(IScope scope, T agent) throws GamaRuntimeException;
 
 	public abstract boolean hasVar(final String n);
+
+	@Override
+	public default IPopulation<? extends IAgent> getPopulation(final IScope scope) {
+		return this;
+	}
 
 	/**
 	 * Create agents as members of this population.
 	 *
 	 * @param scope
-	 * @param number The number of agent to create.
-	 * @param initialValues The initial values of agents' variables.
-	 * @param isRestored Indicates that the agents are newly created or they are restored (on a
-	 *            capture or release).
-	 *            If agents are restored on a capture or release then don't run their "init" reflex
-	 *            again.
+	 * @param number
+	 *            The number of agent to create.
+	 * @param initialValues
+	 *            The initial values of agents' variables.
+	 * @param isRestored
+	 *            Indicates that the agents are newly created or they are restored (on a capture or release). If agents
+	 *            are restored on a capture or release then don't run their "init" reflex again.
 	 *
 	 * @return
 	 * @throws GamaRuntimeException
 	 */
-	public abstract IList<? extends IAgent> createAgents(IScope scope, int number, List<? extends Map> initialValues,
-		boolean isRestored, boolean toBeScheduled) throws GamaRuntimeException;
+	public abstract IList<T> createAgents(IScope scope, int number, List<? extends Map<String, Object>> initialValues,
+			boolean isRestored, boolean toBeScheduled) throws GamaRuntimeException;
 
-	public abstract IList<? extends IAgent> createAgents(final IScope scope, final IContainer<?, IShape> geometries)
-		throws GamaRuntimeException;
-	
-	public abstract IAgent createAgentAt(final IScope s, int index, Map<String, Object> initialValues,
-		boolean isRestored, boolean toBeScheduled) throws GamaRuntimeException;
-	
+	public abstract IList<T> createAgents(final IScope scope, final IContainer<?, ? extends IShape> geometries)
+			throws GamaRuntimeException;
+
+	public abstract T createAgentAt(final IScope s, int index, Map<String, Object> initialValues, boolean isRestored,
+			boolean toBeScheduled) throws GamaRuntimeException;
 
 	// public abstract Iterator<IAgent> getAgentsList();
 
@@ -106,7 +124,7 @@ public interface IPopulation extends Comparable<IPopulation>, IList<IAgent>, ISt
 
 	// public abstract boolean manages(ISpecies s, boolean direct);
 
-	public abstract IVariable getVar(final IAgent a, final String s);
+	public abstract IVariable getVar(final String s);
 
 	boolean hasUpdatableVariables();
 
@@ -143,7 +161,7 @@ public interface IPopulation extends Comparable<IPopulation>, IList<IAgent>, ISt
 	 * @param obj
 	 * @return
 	 */
-	public abstract IAgent getAgent(Integer obj);
+	public abstract T getAgent(Integer obj);
 
 	public void addListener(IPopulation.Listener listener);
 
@@ -156,9 +174,9 @@ public interface IPopulation extends Comparable<IPopulation>, IList<IAgent>, ISt
 	 * @param coord
 	 * @return
 	 */
-	IAgent getAgent(IScope scope, ILocation coord);
+	T getAgent(IScope scope, ILocation coord);
 
 	@Override
-	IAgent[] toArray();
+	T[] toArray();
 
 }

@@ -1,18 +1,18 @@
 /*********************************************************************************************
+ *
+ * 'ISymbol.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform. (c)
+ * 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * 
- * 'ISymbol.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gaml.compilation;
 
-import java.util.List;
-import msi.gama.common.interfaces.*;
+import org.eclipse.emf.common.util.URI;
+
+import msi.gama.common.interfaces.INamed;
+import msi.gama.runtime.IScope;
 import msi.gaml.descriptions.IDescription;
 import msi.gaml.expressions.IExpression;
 
@@ -22,21 +22,34 @@ import msi.gaml.expressions.IExpression;
  * @todo Description
  * 
  */
-public interface ISymbol extends INamed, IGamlable {
+public interface ISymbol extends INamed {
 
 	public abstract void dispose();
 
+	public abstract int getOrder();
+
+	public abstract void setOrder(int o);
+
 	public abstract IDescription getDescription();
+
+	public URI getURI();
 
 	/**
 	 * Returns the expression located at the first facet of 'keys'
+	 * 
 	 * @param keys
 	 * @return
 	 */
-	public abstract IExpression getFacet(String ... keys);
+	public abstract IExpression getFacet(String... keys);
 
 	public abstract boolean hasFacet(String key);
 
-	public abstract void setChildren(List<? extends ISymbol> children);
+	public abstract void setChildren(Iterable<? extends ISymbol> children);
+
+	public abstract String getTrace(IScope abstractScope);
+
+	public abstract String getKeyword();
+
+	public abstract void setEnclosing(ISymbol enclosing);
 
 }

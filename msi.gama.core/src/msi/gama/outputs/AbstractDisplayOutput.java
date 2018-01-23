@@ -1,17 +1,16 @@
 /*********************************************************************************************
  *
+ * 'AbstractDisplayOutput.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'AbstractDisplayOutput.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs;
 
 import msi.gama.common.interfaces.IGamaView;
+import msi.gama.common.interfaces.IKeyword;
 import msi.gama.runtime.GAMA;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
@@ -24,8 +23,11 @@ import msi.gaml.descriptions.IDescription;
  */
 public abstract class AbstractDisplayOutput extends AbstractOutput implements IDisplayOutput {
 
+	final boolean virtual;
+
 	public AbstractDisplayOutput(final IDescription desc) {
 		super(desc);
+		virtual = IKeyword.TRUE.equals(getLiteral(IKeyword.VIRTUAL, null));
 	}
 
 	protected boolean disposed = false;
@@ -33,47 +35,37 @@ public abstract class AbstractDisplayOutput extends AbstractOutput implements ID
 	protected boolean inInitPhase = true;
 	protected IGamaView view;
 
-	final Runnable opener = new Runnable() {
-
-		@Override
-		public void run() {
-			if (view == null) {
-				view = getScope().getGui().showView(getViewId(), isUnique() ? null : getName(), 3); // IWorkbenchPage.VIEW_CREATE
-			}
-			if (view == null) {
-				return;
-			}
-			view.addOutput(AbstractDisplayOutput.this);
-		}
-
+	final Runnable opener = () -> {
+		view = getScope().getGui().showView(getScope(), getViewId(), isUnique() ? null : getName(), 1); // IWorkbenchPage.VIEW_ACTIVATE
+		if (view == null) { return; }
+		view.addOutput(AbstractDisplayOutput.this);
 	};
+
+	@Override
+	public boolean isVirtual() {
+		return virtual;
+	}
 
 	@Override
 	public void open() {
 		super.open();
-		getScope().getGui().run(opener);
+		GAMA.getGui().run(getScope(), opener);
 	}
 
 	@Override
 	public boolean init(final IScope scope) throws GamaRuntimeException {
 		super.init(scope);
-		// if ( view != null ) {
-		// view.outputReloaded(this);
-		// }
 		return true;
 	}
 
 	@Override
 	public void dispose() {
-		if (disposed) {
-			return;
-		}
+		if (disposed) { return; }
 		disposed = true;
 		if (view != null) {
 			view.removeOutput(this);
 			view = null;
 		}
-		// scope.getGui().closeViewOf(this);
 		if (getScope() != null) {
 			GAMA.releaseScope(getScope());
 		}
@@ -99,6 +91,15 @@ public abstract class AbstractDisplayOutput extends AbstractOutput implements ID
 	@Override
 	public void setSynchronized(final boolean sync) {
 		synchro = sync;
+		if (view != null)
+			view.updateToolbarState();
+	}
+
+	@Override
+	public void setPaused(final boolean pause) {
+		super.setPaused(pause);
+		if (view != null)
+			view.updateToolbarState();
 	}
 
 	@Override
@@ -107,9 +108,8 @@ public abstract class AbstractDisplayOutput extends AbstractOutput implements ID
 	@Override
 	public String getId() {
 		final String cName = ((AbstractOutput) this).getDescription().getModelDescription().getAlias();
-		if (!cName.equals("") && !getName().contains("#")) {
-			return isUnique() ? getViewId() : getViewId() + getName() + "#" + cName;
-		}
+		if (cName != null && !cName.equals("") && !getName().contains("#")) { return isUnique() ? getViewId()
+				: getViewId() + getName() + "#" + cName; }
 		return isUnique() ? getViewId() : getViewId() + getName();
 	}
 

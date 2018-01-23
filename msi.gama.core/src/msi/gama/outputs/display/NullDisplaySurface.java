@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'NullDisplaySurface.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'NullDisplaySurface.java', in plugin 'msi.gama.headless', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs.display;
@@ -51,7 +49,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	}
 
 	@Override
-	public IScope getDisplayScope() {
+	public IScope getScope() {
 		return null;
 	}
 
@@ -61,8 +59,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#dispose()
 	 */
 	@Override
-	public void dispose() {
-	}
+	public void dispose() {}
 
 	/**
 	 * Method updateDisplay()
@@ -70,8 +67,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#updateDisplay()
 	 */
 	@Override
-	public void updateDisplay(final boolean force) {
-	}
+	public void updateDisplay(final boolean force) {}
 
 	/**
 	 * Method resizeImage()
@@ -89,8 +85,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#zoomIn()
 	 */
 	@Override
-	public void zoomIn() {
-	}
+	public void zoomIn() {}
 
 	/**
 	 * Method zoomOut()
@@ -98,8 +93,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#zoomOut()
 	 */
 	@Override
-	public void zoomOut() {
-	}
+	public void zoomOut() {}
 
 	/**
 	 * Method zoomFit()
@@ -107,8 +101,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#zoomFit()
 	 */
 	@Override
-	public void zoomFit() {
-	}
+	public void zoomFit() {}
 
 	/**
 	 * Method getManager()
@@ -126,8 +119,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#focusOn(msi.gama.metamodel.shape.IShape)
 	 */
 	@Override
-	public void focusOn(final IShape geometry) {
-	}
+	public void focusOn(final IShape geometry) {}
 
 	/**
 	 * Method getWidth()
@@ -152,12 +144,10 @@ public class NullDisplaySurface implements IDisplaySurface {
 	/**
 	 * Method initialize()
 	 * 
-	 * @see msi.gama.common.interfaces.IDisplaySurface#initialize(double,
-	 *      double, msi.gama.outputs.LayeredDisplayOutput)
+	 * @see msi.gama.common.interfaces.IDisplaySurface#initialize(double, double, msi.gama.outputs.LayeredDisplayOutput)
 	 */
 	@Override
-	public void outputReloaded() {
-	}
+	public void outputReloaded() {}
 
 	/**
 	 * Method addMouseListener()
@@ -165,8 +155,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#addMouseListener(java.awt.event.MouseListener)
 	 */
 	@Override
-	public void addListener(final IEventLayerListener e) {
-	}
+	public void addListener(final IEventLayerListener e) {}
 
 	/**
 	 * Method removeMouseListener()
@@ -174,8 +163,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#removeMouseListener(java.awt.event.MouseListener)
 	 */
 	@Override
-	public void removeListener(final IEventLayerListener e) {
-	}
+	public void removeListener(final IEventLayerListener e) {}
 
 	/**
 	 * Method getEnvWidth()
@@ -238,8 +226,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	/**
 	 * Method getModelCoordinatesFrom()
 	 * 
-	 * @see msi.gama.common.interfaces.IDisplaySurface#getModelCoordinatesFrom(int,
-	 *      int, java.awt.Point, java.awt.Point)
+	 * @see msi.gama.common.interfaces.IDisplaySurface#getModelCoordinatesFrom(int, int, java.awt.Point, java.awt.Point)
 	 */
 	@Override
 	public GamaPoint getModelCoordinatesFrom(final int xOnScreen, final int yOnScreen, final Point sizeInPixels,
@@ -272,8 +259,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#followAgent(msi.gama.metamodel.agent.IAgent)
 	 */
 	@Override
-	public void followAgent(final IAgent a) {
-	}
+	public void followAgent(final IAgent a) {}
 
 	/**
 	 * Method getZoomLevel()
@@ -291,8 +277,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#setSize(int, int)
 	 */
 	@Override
-	public void setSize(final int x, final int y) {
-	}
+	public void setSize(final int x, final int y) {}
 
 	/**
 	 * Method getOutput()
@@ -310,8 +295,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#waitForUpdateAndRun(java.lang.Runnable)
 	 */
 	@Override
-	public void runAndUpdate(final Runnable r) {
-	}
+	public void runAndUpdate(final Runnable r) {}
 
 	/**
 	 * Method getData()
@@ -338,8 +322,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#layersChanged()
 	 */
 	@Override
-	public void layersChanged() {
-	}
+	public void layersChanged() {}
 
 	/**
 	 * Method changed()
@@ -348,8 +331,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 *      boolean)
 	 */
 	@Override
-	public void changed(final Changes property, final boolean value) {
-	}
+	public void changed(final Changes property, final Object value) {}
 
 	@Override
 	public Collection<IEventLayerListener> getLayerListeners() {
@@ -407,9 +389,7 @@ public class NullDisplaySurface implements IDisplaySurface {
 	 * @see msi.gama.common.interfaces.IDisplaySurface#getModelCoordinatesInfo()
 	 */
 	@Override
-	public String getModelCoordinatesInfo() {
-		return null;
-	}
+	public void getModelCoordinatesInfo(final StringBuilder sb) {}
 
 	@Override
 	public void dispatchKeyEvent(final char character) {

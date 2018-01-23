@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'AgentLayer.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'AgentLayer.java', in plugin 'msi.gama.application', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs.layers;
@@ -25,6 +23,7 @@ import msi.gama.common.interfaces.IKeyword;
 import msi.gama.metamodel.agent.IAgent;
 import msi.gama.metamodel.shape.IShape;
 import msi.gama.runtime.IScope;
+import msi.gama.runtime.IScope.ExecutionResult;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gaml.statements.AspectStatement;
 import msi.gaml.statements.IExecutable;
@@ -41,17 +40,7 @@ public class AgentLayer extends AbstractLayer {
 		super(layer);
 	}
 
-	@Override
-	public Rectangle2D focusOn(final IShape geometry, final IDisplaySurface s) {
-		if (geometry instanceof IAgent) {
-			final Rectangle2D r = shapes.get(geometry);
-			if (r != null)
-				return r;
-		}
-		return super.focusOn(geometry, s);
-	}
-
-	protected final Map<IAgent, Rectangle2D> shapes = new ConcurrentHashMap();
+	protected final Map<IAgent, Rectangle2D> shapes = new ConcurrentHashMap<>();
 
 	@Override
 	public void privateDrawDisplay(final IScope scope, final IGraphics g) throws GamaRuntimeException {
@@ -66,9 +55,6 @@ public class AgentLayer extends AbstractLayer {
 				if (a != null/* && !scope.interrupted() */ ) {
 					if (a == scope.getGui().getHighlightedAgent()) {
 						aspect = a.getSpecies().getAspect("highlighted");
-						// if ( aspect == null ) {
-						// aspect = AspectStatement.HIGHLIGHTED_ASPECT;
-						// }
 					} else {
 						aspect = ((AgentLayerStatement) definition).getAspect();
 						if (aspect == null) {
@@ -79,9 +65,8 @@ public class AgentLayer extends AbstractLayer {
 						aspect = AspectStatement.DEFAULT_ASPECT;
 					}
 
-					final Object[] result = new Object[1];
-					scope.execute(aspect, a, null, result);
-					final Rectangle2D r = (Rectangle2D) result[0];
+					final ExecutionResult result = scope.execute(aspect, a, null);
+					final Rectangle2D r = (Rectangle2D) result.getValue();
 					// final Rectangle2D r = aspect.draw(scope, a);
 					if (r != null) {
 						shapes.put(a, r);
@@ -89,15 +74,14 @@ public class AgentLayer extends AbstractLayer {
 				}
 			}
 		} else if (definition instanceof GridLayerStatement) {
+			final GridLayerStatement gls = (GridLayerStatement) definition;
+			final IExecutable aspect = AspectStatement.DEFAULT_ASPECT;
+			AspectStatement.borderColor = gls.getLineColor();
 
 			for (final IAgent a : getAgentsToDisplay()) {
 				if (a != null/* && !scope.interrupted() */ ) {
-					final IExecutable aspect = AspectStatement.DEFAULT_ASPECT;
-
-					final Object[] result = new Object[1];
-					scope.execute(aspect, a, null, result);
-					final Rectangle2D r = (Rectangle2D) result[0];
-					// final Rectangle2D r = aspect.draw(scope, a);
+					final ExecutionResult result = scope.execute(aspect, a, null);
+					final Rectangle2D r = (Rectangle2D) result.getValue();
 					if (r != null) {
 						shapes.put(a, r);
 					}
@@ -108,24 +92,21 @@ public class AgentLayer extends AbstractLayer {
 
 	@Override
 	public Collection<IAgent> getAgentsForMenu(final IScope scope) {
-		if (shapes.isEmpty()) {
-			return getAgentsToDisplay();
-		}
+		if (shapes.isEmpty()) { return getAgentsToDisplay(); }
 		// Avoid recalculating the agents
 		return shapes.keySet();
 	}
 
 	public Collection<IAgent> getAgentsToDisplay() {
 		// return agents;
-		if (definition instanceof AgentLayerStatement) {
-			return ((AgentLayerStatement) definition).getAgentsToDisplay();
-		}
+		if (definition instanceof AgentLayerStatement) { return ((AgentLayerStatement) definition)
+				.getAgentsToDisplay(); }
 		return ((GridLayerStatement) definition).getAgentsToDisplay();
 	}
 
 	@Override
 	public Set<IAgent> collectAgentsAt(final int x, final int y, final IDisplaySurface g) {
-		final Set<IAgent> selectedAgents = new THashSet();
+		final Set<IAgent> selectedAgents = new THashSet<>();
 		final Rectangle2D selection = new Rectangle2D.Double();
 		selection.setFrameFromCenter(x, y, x + IDisplaySurface.SELECTION_SIZE / 2,
 				y + IDisplaySurface.SELECTION_SIZE / 2);
@@ -137,6 +118,16 @@ public class AgentLayer extends AbstractLayer {
 		}
 
 		return selectedAgents;
+	}
+
+	@Override
+	public Rectangle2D focusOn(final IShape geometry, final IDisplaySurface s) {
+		if (geometry instanceof IAgent) {
+			final Rectangle2D r = shapes.get(geometry);
+			if (r != null)
+				return r;
+		}
+		return super.focusOn(geometry, s);
 	}
 
 	@Override

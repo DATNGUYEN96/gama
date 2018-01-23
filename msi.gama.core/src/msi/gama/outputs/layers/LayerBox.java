@@ -1,22 +1,22 @@
 /*********************************************************************************************
  *
+ * 'LayerBox.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform. (c)
+ * 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'LayerBox.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs.layers;
 
-import msi.gama.metamodel.shape.*;
+import msi.gama.metamodel.shape.GamaPoint;
+import msi.gama.metamodel.shape.ILocation;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
-import msi.gaml.expressions.*;
+import msi.gaml.expressions.ConstantExpression;
+import msi.gaml.expressions.IExpression;
+import msi.gaml.expressions.IExpressionFactory;
 import msi.gaml.operators.Cast;
-import msi.gaml.operators.fastmaths.FastMath;
 import msi.gaml.types.IType;
 
 /**
@@ -30,10 +30,10 @@ public class LayerBox implements IDisplayLayerBox {
 	IExpression transparency = new ConstantExpression(0d);
 	IExpression loc = new ConstantExpression(new GamaPoint(0, 0, 0));
 	IExpression size = new ConstantExpression(new GamaPoint(1, 1, 1));
-	IExpression refresh = new ConstantExpression(true);
+	IExpression refresh = IExpressionFactory.TRUE_EXPR;
 	IExpression trace = new ConstantExpression(0);
-	IExpression fading = new ConstantExpression(false);
-	IExpression selectable = new ConstantExpression(true);
+	IExpression fading = IExpressionFactory.FALSE_EXPR;
+	IExpression selectable = IExpressionFactory.TRUE_EXPR;
 
 	Double currentTransparency = 0d;
 	ILocation currentPosition;
@@ -54,8 +54,8 @@ public class LayerBox implements IDisplayLayerBox {
 	boolean constantBoundingBox = false;
 
 	public LayerBox(final IExpression transp, final IExpression pos, final IExpression ext, final IExpression refr,
-		final IExpression tr, final IExpression fd, final IExpression sl) throws GamaRuntimeException {
-		IScope scope = null; // GAMA.obtainNewScope();
+			final IExpression tr, final IExpression fd, final IExpression sl) throws GamaRuntimeException {
+		final IScope scope = null; // GAMA.obtainNewScope();
 		setTransparency(scope, transp == null ? transparency : transp);
 		setPosition(scope, pos == null ? loc : pos);
 		setSize(scope, ext == null ? size : ext);
@@ -69,9 +69,12 @@ public class LayerBox implements IDisplayLayerBox {
 	@Override
 	public void setConstantBoundingBox(final boolean b) {
 		constantBoundingBox = b;
-		if ( b ) {
+		if (b) {
 			constantPosition = currentPosition;
 			constantSize = currentSize;
+		} else {
+			constantPosition = null;
+			constantSize = null;
 		}
 	}
 
@@ -79,31 +82,31 @@ public class LayerBox implements IDisplayLayerBox {
 	public void compute(final IScope scope) throws GamaRuntimeException {
 		try {
 			currentTransparency = constantTransparency == null
-				? 1d - FastMath.min(FastMath.max(Cast.asFloat(scope, transparency.value(scope)), 0d), 1d)
-				: constantTransparency;
+					? 1d - Math.min(Math.max(Cast.asFloat(scope, transparency.value(scope)), 0d), 1d)
+					: constantTransparency;
 			currentSelectable =
-				constantSelectable == null ? Cast.asBool(scope, selectable.value(scope)) : constantSelectable;
-			if ( !constantBoundingBox ) {
+					constantSelectable == null ? Cast.asBool(scope, selectable.value(scope)) : constantSelectable;
+			if (!constantBoundingBox) {
 				currentPosition = constantPosition == null ? Cast.asPoint(scope, loc.value(scope)) : constantPosition;
 				currentSize = constantSize == null ? Cast.asPoint(scope, size.value(scope)) : constantSize;
 			}
 			currentRefresh = constantRefresh == null ? Cast.asBool(scope, refresh.value(scope)) : constantRefresh;
 			currentTrace =
-				constantTrace == null ? trace.getType().id() == IType.BOOL && Cast.asBool(scope, trace.value(scope))
-					? Integer.MAX_VALUE : Cast.asInt(scope, trace.value(scope)) : constantTrace;
+					constantTrace == null ? trace.getType().id() == IType.BOOL && Cast.asBool(scope, trace.value(scope))
+							? Integer.MAX_VALUE : Cast.asInt(scope, trace.value(scope)) : constantTrace;
 			currentFading = constantFading == null ? Cast.asBool(scope, fading.value(scope)) : constantFading;
 
-		} catch (Exception e) {
+		} catch (final Throwable e) {
 			throw GamaRuntimeException.create(e, scope);
 		}
 	}
 
 	@Override
 	public void setTransparency(final IScope scope, final IExpression t) throws GamaRuntimeException {
-		if ( t != null ) {
+		if (t != null) {
 			constantTransparency = null;
 			transparency = t;
-			if ( t.isConst() ) {
+			if (t.isConst()) {
 				setTransparency(Cast.asFloat(scope, t.value(scope)));
 			}
 		}
@@ -111,11 +114,11 @@ public class LayerBox implements IDisplayLayerBox {
 
 	@Override
 	public void setPosition(final IScope scope, final IExpression p) throws GamaRuntimeException {
-		if ( p != null ) {
+		if (p != null) {
 			constantPosition = null;
 			constantBoundingBox = false;
 			loc = p;
-			if ( p.isConst() ) {
+			if (p.isConst()) {
 				setPosition(Cast.asPoint(scope, loc.value(scope)));
 			}
 		}
@@ -123,11 +126,11 @@ public class LayerBox implements IDisplayLayerBox {
 
 	@Override
 	public void setSize(final IScope scope, final IExpression e) throws GamaRuntimeException {
-		if ( e != null ) {
+		if (e != null) {
 			constantSize = null;
 			constantBoundingBox = false;
 			size = e;
-			if ( e.isConst() ) {
+			if (e.isConst()) {
 				setSize(Cast.asPoint(scope, size.value(scope)));
 			}
 		}
@@ -135,10 +138,10 @@ public class LayerBox implements IDisplayLayerBox {
 
 	@Override
 	public void setRefresh(final IScope scope, final IExpression r) throws GamaRuntimeException {
-		if ( r != null ) {
+		if (r != null) {
 			constantRefresh = null;
 			refresh = r;
-			if ( r.isConst() ) {
+			if (r.isConst()) {
 				setRefresh(Cast.asBool(scope, r.value(scope)));
 			}
 		}
@@ -147,7 +150,7 @@ public class LayerBox implements IDisplayLayerBox {
 
 	@Override
 	public void setTransparency(final double f) {
-		currentTransparency = constantTransparency = 1d - FastMath.min(FastMath.max(f, 0d), 1d);
+		currentTransparency = constantTransparency = 1d - Math.min(Math.max(f, 0d), 1d);
 	}
 
 	@Override
@@ -158,7 +161,7 @@ public class LayerBox implements IDisplayLayerBox {
 	@Override
 	public void setSize(final double width, final double height, final double depth) {
 		currentSize = constantSize = new GamaPoint(width, height, depth);
-		if ( constantPosition != null ) {
+		if (constantPosition != null) {
 			constantBoundingBox = true;
 		}
 	}
@@ -171,7 +174,7 @@ public class LayerBox implements IDisplayLayerBox {
 	@Override
 	public void setPosition(final double x, final double y, final double z) {
 		currentPosition = constantPosition = new GamaPoint(x, y, z);
-		if ( constantSize != null ) {
+		if (constantSize != null) {
 			constantBoundingBox = true;
 		}
 	}
@@ -204,16 +207,17 @@ public class LayerBox implements IDisplayLayerBox {
 
 	/**
 	 * Method setTrace()
+	 * 
 	 * @see msi.gama.outputs.layers.IDisplayLayerBox#setTrace(msi.gama.runtime.IScope, msi.gaml.expressions.IExpression)
 	 */
 	@Override
 	public void setTrace(final IScope scope, final IExpression r) {
-		if ( r != null ) {
+		if (r != null) {
 			constantTrace = null;
 			trace = r;
-			if ( r.isConst() ) {
-				if ( r.getType().id() == IType.BOOL ) {
-					boolean val = Cast.asBool(scope, trace.value(scope));
+			if (r.isConst()) {
+				if (r.getType().id() == IType.BOOL) {
+					final boolean val = Cast.asBool(scope, trace.value(scope));
 					setTrace(val ? Integer.MAX_VALUE : 0);
 				} else {
 					setTrace(Cast.asInt(scope, r.value(scope)));
@@ -231,14 +235,16 @@ public class LayerBox implements IDisplayLayerBox {
 
 	/**
 	 * Method setFading()
-	 * @see msi.gama.outputs.layers.IDisplayLayerBox#setFading(msi.gama.runtime.IScope, msi.gaml.expressions.IExpression)
+	 * 
+	 * @see msi.gama.outputs.layers.IDisplayLayerBox#setFading(msi.gama.runtime.IScope,
+	 *      msi.gaml.expressions.IExpression)
 	 */
 	@Override
 	public void setFading(final IScope scope, final IExpression r) {
-		if ( r != null ) {
+		if (r != null) {
 			constantFading = null;
 			fading = r;
-			if ( r.isConst() ) {
+			if (r.isConst()) {
 				setFading(Cast.asBool(scope, r.value(scope)));
 			}
 		}
@@ -246,10 +252,10 @@ public class LayerBox implements IDisplayLayerBox {
 
 	@Override
 	public void setSelectable(final IScope scope, final IExpression r) {
-		if ( r != null ) {
+		if (r != null) {
 			constantSelectable = null;
 			fading = r;
-			if ( r.isConst() ) {
+			if (r.isConst()) {
 				setSelectable(Cast.asBool(scope, r.value(scope)));
 			}
 		}
@@ -269,6 +275,7 @@ public class LayerBox implements IDisplayLayerBox {
 
 	/**
 	 * Method getTrace()
+	 * 
 	 * @see msi.gama.outputs.layers.IDisplayLayerBox#getTrace()
 	 */
 	@Override
@@ -278,6 +285,7 @@ public class LayerBox implements IDisplayLayerBox {
 
 	/**
 	 * Method getFading()
+	 * 
 	 * @see msi.gama.outputs.layers.IDisplayLayerBox#getFading()
 	 */
 	@Override

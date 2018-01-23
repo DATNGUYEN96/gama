@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'UserCommandStatement.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'UserCommandStatement.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.statements;
@@ -14,9 +12,12 @@ package msi.gaml.statements;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.collect.FluentIterable;
+
 import msi.gama.common.interfaces.IGamlIssue;
 import msi.gama.common.interfaces.IKeyword;
 import msi.gama.kernel.experiment.ExperimentPlan;
+import msi.gama.kernel.experiment.IExperimentDisplayable;
 import msi.gama.kernel.simulation.SimulationAgent;
 import msi.gama.kernel.simulation.SimulationPopulation;
 import msi.gama.precompiler.GamlAnnotations.doc;
@@ -50,35 +51,75 @@ import msi.gaml.types.IType;
  * @todo Description
  *
  */
-@symbol(name = {
-		IKeyword.USER_COMMAND }, kind = ISymbolKind.SEQUENCE_STATEMENT, with_sequence = true, with_args = true, concept = {
-				IConcept.GUI })
-@inside(kinds = { ISymbolKind.SPECIES, ISymbolKind.EXPERIMENT, ISymbolKind.MODEL }, symbols = IKeyword.USER_PANEL)
-@facets(value = {
-		@facet(name = IKeyword.CONTINUE, type = IType.BOOL, optional = true, doc = @doc("Whether or not the button, when clicked, should dismiss the user panel it is defined in. Has no effect in other contexts (menu, parameters, inspectors)")),
-		@facet(name = IKeyword.COLOR, type = IType.COLOR, optional = true, doc = @doc("The color of the button to display")),
-		@facet(name = IKeyword.ACTION, type = IType.ID, optional = true, doc = @doc("the identifier of the action to be executed. This action should be accessible in the context in which it is defined (an experiment, the global section or a species). A special case is allowed to maintain the compatibility with older versions of GAMA, when the user_command is declared in an experiment and the action is declared in 'global'. In that case, all the simulations managed by the experiment will run the action in response to the user executing the command")),
-		@facet(name = IKeyword.NAME, type = IType.LABEL, optional = false, doc = @doc("the identifier of the user_command")),
-		@facet(name = IKeyword.WHEN, type = IType.BOOL, optional = true, doc = @doc("the condition that should be fulfilled (in addition to the user clicking it) in order to execute this action")),
-		@facet(name = IKeyword.WITH, type = IType.MAP, optional = true, doc = @doc("the map of the parameters::values required by the action")) }, omissible = IKeyword.NAME)
-@doc(value = "Anywhere in the global block, in a species or in an (GUI) experiment, user_command statements allows to either call directly an existing action (with or without arguments) or to be followed by a block that describes what to do when this command is run.", usages = {
-		@usage(value = "The general syntax is for example:", examples = @example(value = "user_command kill_myself action: some_action with: [arg1::val1, arg2::val2, ...];", isExecutable = false)) }, see = {
-				IKeyword.USER_INIT, IKeyword.USER_PANEL, IKeyword.USER_INPUT })
-@validator(UserCommandValidator.class)
+@symbol (
+		name = { IKeyword.USER_COMMAND },
+		kind = ISymbolKind.SEQUENCE_STATEMENT,
+		with_sequence = true,
+		with_args = true,
+		concept = { IConcept.GUI })
+@inside (
+		kinds = { ISymbolKind.SPECIES, ISymbolKind.EXPERIMENT, ISymbolKind.MODEL },
+		symbols = IKeyword.USER_PANEL)
+@facets (
+		value = { @facet (
+				name = IKeyword.CONTINUE,
+				type = IType.BOOL,
+				optional = true,
+				doc = @doc ("Whether or not the button, when clicked, should dismiss the user panel it is defined in. Has no effect in other contexts (menu, parameters, inspectors)")),
+				@facet (
+						name = IKeyword.COLOR,
+						type = IType.COLOR,
+						optional = true,
+						doc = @doc ("The color of the button to display")),
+				@facet (
+						name = IKeyword.CATEGORY,
+						type = IType.LABEL,
+						optional = true,
+						doc = @doc ("a category label, used to group parameters in the interface")),
+				@facet (
+						name = IKeyword.ACTION,
+						type = IType.ACTION,
+						optional = true,
+						doc = @doc ("the identifier of the action to be executed. This action should be accessible in the context in which the user_command is defined (an experiment, the global section or a species). A special case is allowed to maintain the compatibility with older versions of GAMA, when the user_command is declared in an experiment and the action is declared in 'global'. In that case, all the simulations managed by the experiment will run the action in response to the user executing the command")),
+				@facet (
+						name = IKeyword.NAME,
+						type = IType.LABEL,
+						optional = false,
+						doc = @doc ("the identifier of the user_command")),
+				@facet (
+						name = IKeyword.WHEN,
+						type = IType.BOOL,
+						optional = true,
+						doc = @doc ("the condition that should be fulfilled (in addition to the user clicking it) in order to execute this action")),
+				@facet (
+						name = IKeyword.WITH,
+						type = IType.MAP,
+						optional = true,
+						doc = @doc ("the map of the parameters::values required by the action")) },
+		omissible = IKeyword.NAME)
+@doc (
+		value = "Anywhere in the global block, in a species or in an (GUI) experiment, user_command statements allows to either call directly an existing action (with or without arguments) or to be followed by a block that describes what to do when this command is run.",
+		usages = { @usage (
+				value = "The general syntax is for example:",
+				examples = @example (
+						value = "user_command kill_myself action: some_action with: [arg1::val1, arg2::val2, ...];",
+						isExecutable = false)) },
+		see = { IKeyword.USER_INIT, IKeyword.USER_PANEL, IKeyword.USER_INPUT })
+@validator (UserCommandValidator.class)
 
-public class UserCommandStatement extends AbstractStatementSequence implements IStatement.WithArgs {
+public class UserCommandStatement extends AbstractStatementSequence
+		implements IStatement.WithArgs, IExperimentDisplayable {
 
-	public static class UserCommandValidator implements IDescriptionValidator {
+	public static class UserCommandValidator implements IDescriptionValidator<IDescription> {
 
 		/*
 		 * (non-Javadoc)
 		 *
-		 * @see msi.gaml.compilation.IDescriptionValidator#validate(msi.gaml.
-		 * descriptions.IDescription)
+		 * @see msi.gaml.compilation.IDescriptionValidator#validate(msi.gaml. descriptions.IDescription)
 		 */
 		@Override
 		public void validate(final IDescription description) {
-			final String action = description.getFacets().getLabel(ACTION);
+			final String action = description.getLitteral(ACTION);
 
 			final IDescription enclosing = description.getEnclosingDescription();
 			if (action != null && enclosing.getAction(action) == null) {
@@ -88,7 +129,7 @@ public class UserCommandStatement extends AbstractStatementSequence implements I
 				// emit a warning (see Issue #1595)
 				if (enclosing instanceof ExperimentDescription) {
 					final ModelDescription model = enclosing.getModelDescription();
-					if (model.hasAction(action)) {
+					if (model.hasAction(action, false)) {
 						description.warning(
 								"Action " + action
 										+ " should be defined in the experiment, not in global. To maintain the compatibility with GAMA 1.6.1, the command will execute it on all the simulations managed by this experiment",
@@ -109,13 +150,15 @@ public class UserCommandStatement extends AbstractStatementSequence implements I
 	Arguments args;
 	Arguments runtimeArgs;
 	final String actionName;
+	final String category;
 	final IExpression when;
-	List<UserInputStatement> inputs = new ArrayList();
+	List<UserInputStatement> inputs = new ArrayList<>();
 
 	public UserCommandStatement(final IDescription desc) {
 		super(desc);
 		setName(desc.getName());
 		actionName = getLiteral(IKeyword.ACTION);
+		category = desc.getLitteral(IKeyword.CATEGORY);
 		when = getFacet(IKeyword.WHEN);
 	}
 
@@ -129,14 +172,13 @@ public class UserCommandStatement extends AbstractStatementSequence implements I
 	}
 
 	@Override
-	public void setChildren(final List<? extends ISymbol> children) {
+	public void setChildren(final Iterable<? extends ISymbol> children) {
 		for (final ISymbol c : children) {
 			if (c instanceof UserInputStatement) {
 				inputs.add((UserInputStatement) c);
 			}
 		}
-		children.removeAll(inputs);
-		super.setChildren(children);
+		super.setChildren(FluentIterable.from(children).filter(each -> !inputs.contains(each)));
 	}
 
 	@Override
@@ -154,7 +196,7 @@ public class UserCommandStatement extends AbstractStatementSequence implements I
 				runtimeArgs = null;
 				return result;
 			}
-			ISpecies context = scope.getAgentScope().getSpecies();
+			ISpecies context = scope.getAgent().getSpecies();
 			IStatement.WithArgs executer = context.getAction(actionName);
 			boolean isWorkaroundForIssue1595 = false;
 			if (executer == null) {
@@ -173,12 +215,11 @@ public class UserCommandStatement extends AbstractStatementSequence implements I
 			}
 			if (isWorkaroundForIssue1595) {
 				final SimulationPopulation simulations = scope.getExperiment().getSimulationPopulation();
-				final Object[] resultArray = new Object[1];
 				for (final SimulationAgent sim : simulations.iterable(scope)) {
-					scope.execute(executer, sim, tempArgs, resultArray);
+					scope.execute(executer, sim, tempArgs);
 				}
 			} else {
-				executer.setRuntimeArgs(tempArgs);
+				executer.setRuntimeArgs(scope, tempArgs);
 				final Object result = executer.executeOn(scope);
 				runtimeArgs = null;
 				return result;
@@ -188,7 +229,7 @@ public class UserCommandStatement extends AbstractStatementSequence implements I
 	}
 
 	@Override
-	public void setRuntimeArgs(final Arguments args) {
+	public void setRuntimeArgs(final IScope scope, final Arguments args) {
 		this.runtimeArgs = args;
 	}
 
@@ -209,5 +250,23 @@ public class UserCommandStatement extends AbstractStatementSequence implements I
 			return false;
 		return Cast.asBool(scope, exp.value(scope));
 	}
+
+	@Override
+	public String getCategory() {
+		return category;
+	}
+
+	@Override
+	public String getTitle() {
+		return getName();
+	}
+
+	@Override
+	public String getUnitLabel(final IScope scope) {
+		return "";
+	}
+
+	@Override
+	public void setUnitLabel(final String label) {}
 
 }

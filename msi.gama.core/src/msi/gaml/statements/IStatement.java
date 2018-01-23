@@ -1,13 +1,11 @@
 /*********************************************************************************************
+ *
+ * 'IStatement.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * 
- * 'IStatement.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gaml.statements;
 
@@ -26,14 +24,12 @@ public interface IStatement extends ISymbol, IExecutable {
 
 		public abstract void setFormalArgs(Arguments args);
 
-		public abstract void setRuntimeArgs(Arguments args);
+		public abstract void setRuntimeArgs(IScope scope, Arguments args);
 
 	}
 
 	public interface Breakable extends IStatement {
 		// Unused tagging interface (for the moment)
 	}
-
-	public abstract String getTrace(IScope scope);
 
 }

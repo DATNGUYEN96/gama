@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'AbstractSpecies.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'AbstractSpecies.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.species;
@@ -19,10 +17,12 @@ import java.util.Map;
 
 import gnu.trove.map.hash.THashMap;
 import msi.gama.common.interfaces.IKeyword;
+import msi.gama.common.interfaces.ISkill;
 import msi.gama.kernel.model.GamlModelSpecies;
 import msi.gama.metamodel.agent.IAgent;
 import msi.gama.metamodel.population.IPopulation;
 import msi.gama.metamodel.shape.ILocation;
+import msi.gama.runtime.GAMA;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gama.util.GamaListFactory;
@@ -37,8 +37,10 @@ import msi.gaml.architecture.IArchitecture;
 import msi.gaml.compilation.ISymbol;
 import msi.gaml.compilation.Symbol;
 import msi.gaml.descriptions.IDescription;
+import msi.gaml.descriptions.SkillDescription;
 import msi.gaml.descriptions.SpeciesDescription;
 import msi.gaml.descriptions.TypeDescription;
+import msi.gaml.expressions.IExpressionFactory;
 import msi.gaml.statements.ActionStatement;
 import msi.gaml.statements.AspectStatement;
 import msi.gaml.statements.IExecutable;
@@ -55,6 +57,7 @@ import msi.gaml.variables.IVariable;
  * @todo Description
  *
  */
+@SuppressWarnings ({ "unchecked", "rawtypes" })
 public abstract class AbstractSpecies extends Symbol implements ISpecies {
 
 	protected final boolean isGrid, isGraph;
@@ -63,15 +66,22 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	private final Map<String, AspectStatement> aspects = new TOrderedHashMap<String, AspectStatement>();
 	private final Map<String, ActionStatement> actions = new TOrderedHashMap<String, ActionStatement>();
 	private final Map<String, UserCommandStatement> userCommands = new TOrderedHashMap();
-	private final List<IStatement> behaviors = new ArrayList();
+	private final List<IStatement> behaviors = new ArrayList<>();
 	protected ISpecies macroSpecies, parentSpecies;
 	private boolean isInitOverriden, isStepOverriden;
+	final IArchitecture control;
 
 	public AbstractSpecies(final IDescription description) {
 		super(description);
 		setName(description.getName());
-		isGrid = description.getFacets().equals(IKeyword.KEYWORD, IKeyword.GRID);
-		isGraph = AbstractGraphNodeAgent.class.isAssignableFrom(((TypeDescription) description).getJavaBase());
+		isGrid = getKeyword().equals(IKeyword.GRID);
+		isGraph = AbstractGraphNodeAgent.class.isAssignableFrom(((SpeciesDescription) description).getJavaBase());
+		control = (IArchitecture) getDescription().getControl().createInstance();
+	}
+
+	@Override
+	public Collection<IStatement> getBehaviors() {
+		return behaviors;
 	}
 
 	@Override
@@ -85,8 +95,14 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	}
 
 	@Override
-	public IPopulation getPopulation(final IScope scope) {
-		final IAgent a = scope.getAgentScope();
+	public void removeTemporaryAction() {
+		actions.remove(IExpressionFactory.TEMPORARY_ACTION_NAME);
+		getDescription().removeAction(IExpressionFactory.TEMPORARY_ACTION_NAME);
+	}
+
+	@Override
+	public IPopulation<IAgent> getPopulation(final IScope scope) {
+		final IAgent a = scope.getAgent();
 		IPopulation result = null;
 		if (a != null) {
 			// AD 19/09/13 Patch to allow experiments to gain access to the
@@ -97,13 +113,13 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	}
 
 	@Override
-	public IList listValue(final IScope scope, final IType contentsType, final boolean copy)
+	public IList<IAgent> listValue(final IScope scope, final IType contentsType, final boolean copy)
 			throws GamaRuntimeException {
 		// return getPopulation(scope).listValue(scope, contentsType);
 		// hqnghi 16/04/14
 		IPopulation pop = getPopulation(scope);
 		if (pop == null) {
-			pop = scope.getSimulationScope().getPopulationFor(contentsType.getName());
+			pop = scope.getSimulation().getPopulationFor(contentsType.getName());
 		}
 		// AD 20/01/16 : Explicitly passes true in order to obtain a copy of the
 		// population
@@ -117,12 +133,12 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	}
 
 	@Override
-	public GamaMap mapValue(final IScope scope, final IType keyType, final IType contentsType, final boolean copy)
+	public GamaMap<?, ?> mapValue(final IScope scope, final IType keyType, final IType contentsType, final boolean copy)
 			throws GamaRuntimeException {
 		final IList<IAgent> agents = listValue(scope, contentsType, false);
 		// Default behavior : Returns a map containing the names of agents as
 		// keys and the agents themselves as values
-		final GamaMap result = GamaMapFactory.create(Types.STRING, scope.getModelContext().getTypeNamed(getName()));
+		final GamaMap result = GamaMapFactory.create(Types.STRING, scope.getType(getName()));
 		for (final IAgent agent : agents.iterable(scope)) {
 			result.put(agent.getName(), agent);
 		}
@@ -138,11 +154,6 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	public boolean isGraph() {
 		return isGraph;
 	}
-
-	// @Override
-	// public String toGaml() {
-	// return name;
-	// }
 
 	@Override
 	public String toString() {
@@ -192,13 +203,9 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	@Override
 	public ISpecies getMicroSpecies(final String microSpeciesName) {
 		final ISpecies retVal = microSpecies.get(microSpeciesName);
-		if (retVal != null) {
-			return retVal;
-		}
+		if (retVal != null) { return retVal; }
 		final ISpecies parentSpecies = this.getParentSpecies();
-		if (parentSpecies != null) {
-			return parentSpecies.getMicroSpecies(microSpeciesName);
-		}
+		if (parentSpecies != null) { return parentSpecies.getMicroSpecies(microSpeciesName); }
 		return null;
 	}
 
@@ -243,9 +250,7 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 		if (parentSpecies == null) {
 			final TypeDescription parentSpecDesc = getDescription().getParent();
 			// Takes care of invalid species (see Issue 711)
-			if (parentSpecDesc == null || parentSpecDesc == getDescription()) {
-				return null;
-			}
+			if (parentSpecDesc == null || parentSpecDesc == getDescription()) { return null; }
 			ISpecies currentMacroSpec = this.getMacroSpecies();
 			while (currentMacroSpec != null && parentSpecies == null) {
 				parentSpecies = currentMacroSpec.getMicroSpecies(parentSpecDesc.getName());
@@ -258,12 +263,8 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	@Override
 	public boolean extendsSpecies(final ISpecies s) {
 		final ISpecies parent = getParentSpecies();
-		if (parent == null) {
-			return false;
-		}
-		if (parent == s) {
-			return true;
-		}
+		if (parent == null) { return false; }
+		if (parent == s) { return true; }
 		return parent.extendsSpecies(s);
 	}
 
@@ -279,7 +280,7 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 
 	@Override
 	public IArchitecture getArchitecture() {
-		return getDescription().getControl();
+		return control;
 	}
 
 	@Override
@@ -294,7 +295,7 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 
 	@Override
 	public Collection<String> getVarNames() {
-		return getDescription().getVarNames();
+		return getDescription().getAttributeNames();
 	}
 
 	@Override
@@ -343,17 +344,10 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	}
 
 	@Override
-	public Collection<IStatement> getBehaviors() {
-		return behaviors;
-	}
-
-	@Override
-	public void setChildren(final List<? extends ISymbol> children) {
+	public void setChildren(final Iterable<? extends ISymbol> children) {
 		// First we verify the control architecture
-		final IArchitecture control = getArchitecture();
-		if (control == null) {
-			throw GamaRuntimeException.error("The control of species " + description.getName() + " cannot be computed");
-		}
+		if (control == null) { throw GamaRuntimeException.error(
+				"The control of species " + description.getName() + " cannot be computed", GAMA.getRuntimeScope()); }
 		// Then we classify the children in their categories
 		for (final ISymbol s : children) {
 			if (s instanceof ISpecies) {
@@ -361,7 +355,9 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 				oneMicroSpecies.setMacroSpecies(this);
 				microSpecies.put(oneMicroSpecies.getName(), oneMicroSpecies);
 			} else if (s instanceof IVariable) {
+				s.setEnclosing(this);
 				variables.put(s.getName(), (IVariable) s);
+
 			} else if (s instanceof AspectStatement) {
 				aspects.put(s.getName(), (AspectStatement) s);
 			} else if (s instanceof ActionStatement) {
@@ -373,6 +369,7 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 						isStepOverriden = true;
 					}
 				}
+				s.setEnclosing(this);
 				actions.put(s.getName(), (ActionStatement) s);
 			} else if (s instanceof UserCommandStatement) {
 				userCommands.put(s.getName(), (UserCommandStatement) s);
@@ -381,6 +378,7 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 			}
 		}
 		control.setChildren(behaviors);
+		behaviors.forEach(b->b.setEnclosing(this));
 		control.verifyBehaviors(this);
 	}
 
@@ -430,15 +428,11 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 		for (final IStatement s : behaviors) {
 			final boolean instance = clazz.isAssignableFrom(s.getClass());
 			if (instance) {
-				if (valueOfFacetName == null) {
-					return (T) s;
-				}
-				final String t = s.getFacet(IKeyword.NAME).literalValue();
+				if (valueOfFacetName == null) { return (T) s; }
+				final String t = s.getDescription().getName();
 				if (t != null) {
 					final boolean named = t.equals(valueOfFacetName);
-					if (named) {
-						return (T) s;
-					}
+					if (named) { return (T) s; }
 				}
 			}
 		}
@@ -505,7 +499,7 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	}
 
 	@Override
-	public IContainer reverse(final IScope scope) throws GamaRuntimeException {
+	public IContainer<Integer, ? extends IAgent> reverse(final IScope scope) throws GamaRuntimeException {
 		return getPopulation(scope).reverse(scope);
 	}
 
@@ -514,37 +508,15 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 		return getPopulation(scope).anyValue(scope);
 	}
 
-	//
-	// @Override
-	// public boolean checkBounds(final Integer index, final boolean forAdding)
-	// {
-	// return false;
-	// }
-
-	// @Override
-	// public void add(final IScope scope, final Integer index, final Object
-	// value, final Object param, final boolean
-	// all,
-	// final boolean add) throws GamaRuntimeException {
-	// // NOT ALLOWED
-	// }
-	//
-	// @Override
-	// public void remove(final IScope scope, final Object index, final Object
-	// value, final boolean all)
-	// throws GamaRuntimeException {
-	// // NOT ALLOWED
-	// }
-
 	@Override
-	public IMatrix matrixValue(final IScope scope, final IType contentsType, final boolean copy)
+	public IMatrix<? extends IAgent> matrixValue(final IScope scope, final IType contentsType, final boolean copy)
 			throws GamaRuntimeException {
 		return getPopulation(scope).matrixValue(scope, contentsType, copy);
 	}
 
 	@Override
-	public IMatrix matrixValue(final IScope scope, final IType contentsType, final ILocation preferredSize,
-			final boolean copy) throws GamaRuntimeException {
+	public IMatrix<? extends IAgent> matrixValue(final IScope scope, final IType contentsType,
+			final ILocation preferredSize, final boolean copy) throws GamaRuntimeException {
 		return getPopulation(scope).matrixValue(scope, contentsType, preferredSize, copy);
 	}
 
@@ -559,91 +531,24 @@ public abstract class AbstractSpecies extends Symbol implements ISpecies {
 	}
 
 	@Override
-	public Collection<? extends IPopulation> getPopulations(final IScope scope) {
+	public Collection<? extends IPopulation<? extends IAgent>> getPopulations(final IScope scope) {
 		return Collections.singleton(getPopulation(scope));
 	}
 
-	/**
-	 * Method add()
-	 * 
-	 * @see msi.gama.util.IContainer#add(msi.gama.runtime.IScope,
-	 *      java.lang.Object)
-	 */
-	// @Override
-	// public void add(final IScope scope, final IAgent value) {}
+	public ISkill getSkillInstanceFor(final Class skillClass) {
+		if (skillClass == null)
+			return null;
+		if (skillClass.isAssignableFrom(control.getClass())) { return control; }
+		return getSkillInstanceFor(getDescription(), skillClass);
+	}
 
-	/**
-	 * Method add()
-	 * 
-	 * @see msi.gama.util.IContainer#add(msi.gama.runtime.IScope,
-	 *      java.lang.Object, java.lang.Object)
-	 */
-	// @Override
-	// public void add(final IScope scope, final Integer index, final IAgent
-	// value) {}
-
-	/**
-	 * Method put()
-	 * 
-	 * @see msi.gama.util.IContainer#put(msi.gama.runtime.IScope,
-	 *      java.lang.Object, java.lang.Object)
-	 */
-	// @Override
-	// public void put(final IScope scope, final Integer index, final IAgent
-	// value) {}
-
-	/**
-	 * Method addAll()
-	 * 
-	 * @see msi.gama.util.IContainer#addAll(msi.gama.runtime.IScope,
-	 *      msi.gama.util.IContainer)
-	 */
-	// @Override
-	// public void addAll(final IScope scope, final IContainer values) {}
-
-	/**
-	 * Method setAll()
-	 * 
-	 * @see msi.gama.util.IContainer#setAll(msi.gama.runtime.IScope,
-	 *      java.lang.Object)
-	 */
-	// @Override
-	// public void setAll(final IScope scope, final IAgent value) {}
-
-	/**
-	 * Method remove()
-	 * 
-	 * @see msi.gama.util.IContainer#remove(msi.gama.runtime.IScope,
-	 *      java.lang.Object)
-	 */
-	// @Override
-	// public void remove(final IScope scope, final Object value) {}
-
-	/**
-	 * Method removeAt()
-	 * 
-	 * @see msi.gama.util.IContainer#removeAt(msi.gama.runtime.IScope,
-	 *      java.lang.Object)
-	 */
-	// @Override
-	// public void removeAt(final IScope scope, final Integer index) {}
-
-	/**
-	 * Method removeAll()
-	 * 
-	 * @see msi.gama.util.IContainer#removeAll(msi.gama.runtime.IScope,
-	 *      msi.gama.util.IContainer)
-	 */
-	// @Override
-	// public void removeAll(final IScope scope, final IContainer values) {}
-
-	/**
-	 * Method removeAll()
-	 * 
-	 * @see msi.gama.util.IContainer#removeAll(msi.gama.runtime.IScope,
-	 *      java.lang.Object)
-	 */
-	// @Override
-	// public void removeAll(final IScope scope, final Object value) {}
+	private ISkill getSkillInstanceFor(final SpeciesDescription sd, final Class skillClass) {
+		for (final SkillDescription sk : sd.getSkills()) {
+			if (skillClass.isAssignableFrom(sk.getJavaBase())) { return sk.getInstance(); }
+		}
+		if (sd.getParent() != null && sd.getParent() != sd)
+			return getSkillInstanceFor(sd.getParent(), skillClass);
+		return null;
+	}
 
 }

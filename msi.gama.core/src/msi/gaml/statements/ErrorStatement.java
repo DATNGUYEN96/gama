@@ -1,13 +1,12 @@
 /*********************************************************************************************
- * 
- * 
- * 'ErrorStatement.java', in plugin 'msi.gama.core', is part of the source code of the
+ *
+ * 'ErrorStatement.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gaml.statements;
 
@@ -55,7 +54,7 @@ public class ErrorStatement extends AbstractStatement {
 
 	@Override
 	public Object privateExecuteIn(final IScope scope) throws GamaRuntimeException {
-		IAgent agent = scope.getAgentScope();
+		IAgent agent = scope.getAgent();
 		String mes = null;
 		if ( agent != null && !agent.dead() ) {
 			mes = Cast.asString(scope, message.value(scope));

@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'TypeExpression.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'TypeExpression.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.expressions;
@@ -14,7 +12,11 @@ package msi.gaml.expressions;
 import msi.gama.precompiler.GamlProperties;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
+import msi.gama.util.ICollector;
+import msi.gaml.descriptions.IDescription;
+import msi.gaml.descriptions.VariableDescription;
 import msi.gaml.types.IType;
+import msi.gaml.types.Types;
 
 /**
  * Class TypeExpression.
@@ -25,14 +27,15 @@ import msi.gaml.types.IType;
  */
 public class TypeExpression extends AbstractExpression {
 
+	@SuppressWarnings ("rawtypes")
 	public TypeExpression(final IType type) {
 		this.type = type;
 	}
 
 	@Override
-	public Object value(final IScope scope) throws GamaRuntimeException {
+	public IType<?> value(final IScope scope) throws GamaRuntimeException {
 		// Normally never evaluated
-		return getType();
+		return getDenotedType();
 	}
 
 	@Override
@@ -62,7 +65,8 @@ public class TypeExpression extends AbstractExpression {
 
 	/**
 	 * Method getDocumentation()
-	 * @see msi.gaml.descriptions.IGamlDescription#getDocumentation()
+	 * 
+	 * @see msi.gama.common.interfaces.IGamlDescription#getDocumentation()
 	 */
 	@Override
 	public String getDocumentation() {
@@ -70,7 +74,12 @@ public class TypeExpression extends AbstractExpression {
 	}
 
 	@Override
-	public IType getType() {
+	public IType<?> getType() {
+		return Types.TYPE;
+	}
+
+	@Override
+	public IType<?> getDenotedType() {
 		return type;
 	}
 
@@ -81,11 +90,15 @@ public class TypeExpression extends AbstractExpression {
 
 	/**
 	 * Method collectPlugins()
-	 * @see msi.gaml.descriptions.IGamlDescription#collectPlugins(java.util.Set)
+	 * 
+	 * @see msi.gama.common.interfaces.IGamlDescription#collectPlugins(java.util.Set)
 	 */
 	@Override
 	public void collectMetaInformation(final GamlProperties meta) {
 		type.collectMetaInformation(meta);
 	}
+
+	@Override
+	public void collectUsedVarsOf(final IDescription species, final ICollector<VariableDescription> result) {}
 
 }

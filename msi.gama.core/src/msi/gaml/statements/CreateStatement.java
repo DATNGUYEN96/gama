@@ -1,18 +1,15 @@
 /*********************************************************************************************
  *
+ * 'CreateStatement.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'CreateStatement.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.statements;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +18,7 @@ import msi.gama.common.interfaces.IGamlIssue;
 import msi.gama.common.interfaces.IKeyword;
 import msi.gama.kernel.experiment.ExperimentAgent;
 import msi.gama.kernel.experiment.ExperimentPlan;
-import msi.gama.kernel.experiment.ExperimentPopulation;
+import msi.gama.kernel.experiment.ExperimentPlan.ExperimentPopulation;
 import msi.gama.kernel.simulation.SimulationAgent;
 import msi.gama.metamodel.agent.IAgent;
 import msi.gama.metamodel.agent.IMacroAgent;
@@ -46,10 +43,12 @@ import msi.gaml.compilation.IDescriptionValidator;
 import msi.gaml.compilation.ISymbol;
 import msi.gaml.descriptions.ExperimentDescription;
 import msi.gaml.descriptions.IDescription;
+import msi.gaml.descriptions.IDescription.FacetVisitor;
 import msi.gaml.descriptions.IExpressionDescription;
 import msi.gaml.descriptions.ModelDescription;
 import msi.gaml.descriptions.SpeciesDescription;
 import msi.gaml.descriptions.StatementDescription;
+import msi.gaml.descriptions.SymbolDescription;
 import msi.gaml.descriptions.SymbolSerializer.StatementSerializer;
 import msi.gaml.expressions.IExpression;
 import msi.gaml.operators.Cast;
@@ -63,71 +62,171 @@ import msi.gaml.types.Types;
 /**
  * This command is used to create agents.
  *
- * Considering the invoking agent as the execution context, species of the
- * created agents can be 1. The same species of the invoking agent or any peer
- * species of the invoking agent's species. The newly created agent(s) will take
- * the invoking agent's macro-agent as its/their macro-agent.
+ * Considering the invoking agent as the execution context, species of the created agents can be 1. The same species of
+ * the invoking agent or any peer species of the invoking agent's species. The newly created agent(s) will take the
+ * invoking agent's macro-agent as its/their macro-agent.
  *
- * 2. The direct micro-species of the invoking agent's species. The newly create
- * agent(s) will take the invoking agent as its/their macro-agent.
+ * 2. The direct micro-species of the invoking agent's species. The newly create agent(s) will take the invoking agent
+ * as its/their macro-agent.
  *
- * 3. The direct macro-species of the invoking agent's species or any peer
- * species of this direct macro-species. The newly created agent(s) will take
- * the macro-agent of invoking agent's macro-agent as its/their macro-agent.
+ * 3. The direct macro-species of the invoking agent's species or any peer species of this direct macro-species. The
+ * newly created agent(s) will take the macro-agent of invoking agent's macro-agent as its/their macro-agent.
  *
- * Creation of agents from CSV files: create toto from: "toto.csv" header: true
- * with:[att1::read("NAME"), att2::read("TYPE")]; or, without header: create
- * toto from: "toto.csv"with:[att1::read(0), att2::read(1)]; //with the
+ * Creation of agents from CSV files: create toto from: "toto.csv" header: true with:[att1::read("NAME"),
+ * att2::read("TYPE")]; or, without header: create toto from: "toto.csv"with:[att1::read(0), att2::read(1)]; //with the
  * read(int), the index of the column.
  */
-@symbol(name = IKeyword.CREATE, kind = ISymbolKind.SEQUENCE_STATEMENT, with_sequence = true, with_args = true, concept = {
-		IConcept.SPECIES }, remote_context = true)
-@inside(kinds = { ISymbolKind.BEHAVIOR, ISymbolKind.SEQUENCE_STATEMENT })
-@facets(value = {
-		@facet(name = IKeyword.SPECIES, type = { IType.SPECIES,
-				IType.AGENT }, optional = true, doc = @doc("an expression that evaluates to a species, the species of the agents to be created. In the case of simulations, the name 'simulation', which represents the current instance of simulation, can also be used as a proxy to their species")),
-		@facet(name = IKeyword.RETURNS, type = IType.NEW_TEMP_ID, optional = true, doc = @doc("a new temporary variable name containing the list of created agents (a list, even if only one agent has been created)")),
-		@facet(name = IKeyword.FROM, type = IType.NONE, optional = true, doc = @doc("an expression that evaluates to a localized entity, a list of localized entities, a string (the path of a file), a file (shapefile, a .csv, a .asc or a OSM file) or a container returned by a request to a database")),
-		@facet(name = IKeyword.NUMBER, type = IType.INT, optional = true, doc = @doc("an expression that evaluates to an int, the number of created agents")),
-		@facet(name = IKeyword.AS, type = { IType.SPECIES }, optional = true, doc = @doc("")),
-		@facet(name = IKeyword.WITH, type = {
-				IType.MAP }, of = IType.NONE, index = IType.STRING, optional = true, doc = @doc("an expression that evaluates to a map, for each pair the key is a species attribute and the value the assigned value")),
-		@facet(name = IKeyword.HEADER, type = {
-				IType.BOOL }, optional = true, doc = @doc(deprecated = "Use a file constructor that specifies the header instead, e.g. csv_file('...', true)", value = "an expression that evaluates to a boolean, when creating agents from csv file, specify whether the file header is loaded")) }, omissible = IKeyword.SPECIES)
-@doc(value = "Allows an agent to create `number` agents of species `species`, to create agents of species `species` from a shapefile or to create agents of species `species` from one or several localized entities (discretization of the localized entity geometries).", usages = {
-		@usage(value = "Its simple syntax to create `an_int` agents of species `a_species` is:", examples = {
-				@example(value = "create a_species number: an_int;", isExecutable = false),
-				@example(value = "create species_of(self) number: 5 returns: list5Agents;", isTestOnly = false),
-				@example(var = "list5Agents", returnType = "list", value = "5", isExecutable = false) }),
-		@usage("If `number` equals 0 or species is not a species, the statement is ignored."),
-		@usage(value = "In GAML modelers can create agents of species `a_species  (with two attributes `type` and `nature` with types corresponding to the types of the shapefile attributes) from a shapefile `the_shapefile` while reading attributes 'TYPE_OCC' and 'NATURE' of the shapefile. One agent will be created by object contained in the shapefile:", examples = @example(value = "create a_species from: the_shapefile with: [type:: 'TYPE_OCC', nature::'NATURE'];", isExecutable = false)),
-		@usage(value = "In order to create agents from a .csv file, facet `header` can be used to specified whether we can use columns header:", examples = {
-				@example(value = "create toto from: \"toto.csv\" header: true with:[att1::read(\"NAME\"), att2::read(\"TYPE\")];", isExecutable = false),
-				@example(value = "or", isExecutable = false),
-				@example(value = "create toto from: \"toto.csv\" with:[att1::read(0), att2::read(1)]; //with read(int), the index of the column", isExecutable = false) }),
-		@usage(value = "Similarly to the creation from shapefile, modelers can create agents from a set of geometries. In this case, one agent per geometry will be created (with the geometry as shape)", examples = {
-				@example(value = "create species_of(self) from: [square(4),circle(4)]; 	// 2 agents have been created, with shapes respectively square(4) and circle(4)"),
-				@example(value = "create species_of(self) from: [square(4),circle(4)] returns: new_agt;", isTestOnly = true),
-				@example(value = "new_agt[0].shape", equals = "square(4)", returnType = "geometry", isTestOnly = true),
-				@example(value = "new_agt[1].shape", equals = "circle(4)", returnType = "geometry", isTestOnly = true) }),
-		@usage(value = "Created agents are initialized following the rules of their species. If one wants to refer to them after the statement is executed, the returns keyword has to be defined: the agents created will then be referred to by the temporary variable it declares. For instance, the following statement creates 0 to 4 agents of the same species as the sender, and puts them in the temporary variable children for later use.", examples = {
-				@example(value = "create species (self) number: rnd (4) returns: children;", test = false),
-				@example(value = "ask children {", test = true), @example(value = "        // ...", test = false),
-				@example(value = "}", test = false) }),
-		@usage(value = "If one wants to specify a special initialization sequence for the agents created, create provides the same possibilities as ask. This extended syntax is:", examples = {
-				@example(value = "create a_species number: an_int {", isExecutable = false),
-				@example(value = "     [statements]", isExecutable = false),
-				@example(value = "}", isExecutable = false) }),
-		@usage(value = "The same rules as in ask apply. The only difference is that, for the agents created, the assignments of variables will bypass the initialization defined in species. For instance:", examples = {
-				@example(value = "create species(self) number: rnd (4) returns: children {", isExecutable = false),
-				@example(value = "     set location <- myself.location + {rnd (2), rnd (2)}; // tells the children to be initially located close to me", isExecutable = false),
-				@example(value = "     set parent <- myself; // tells the children that their parent is me (provided the variable parent is declared in this species) ", isExecutable = false),
-				@example(value = "}", isExecutable = false) }),
-		@usage(value = "Desprecated uses: ", examples = { @example(value = "// Simple syntax", isExecutable = false),
-				@example(value = "create species: a_species number: an_int;", isExecutable = false),
-				@example(value = "", isExecutable = false) }) })
-@validator(CreateValidator.class)
-@serializer(CreateSerializer.class)
+@symbol (
+		name = IKeyword.CREATE,
+		kind = ISymbolKind.SEQUENCE_STATEMENT,
+		with_sequence = true,
+		with_args = true,
+		concept = { IConcept.SPECIES },
+		remote_context = true)
+@inside (
+		kinds = { ISymbolKind.BEHAVIOR, ISymbolKind.SEQUENCE_STATEMENT })
+@facets (
+		value = { @facet (
+				name = IKeyword.SPECIES,
+				type = { IType.SPECIES, IType.AGENT },
+				optional = true,
+				doc = @doc ("an expression that evaluates to a species, the species of the agents to be created. In the case of simulations, the name 'simulation', which represents the current instance of simulation, can also be used as a proxy to their species")),
+				@facet (
+						name = IKeyword.RETURNS,
+						type = IType.NEW_TEMP_ID,
+						optional = true,
+						doc = @doc ("a new temporary variable name containing the list of created agents (a list, even if only one agent has been created)")),
+				@facet (
+						name = IKeyword.FROM,
+						type = IType.NONE,
+						optional = true,
+						doc = @doc ("an expression that evaluates to a localized entity, a list of localized entities, a string (the path of a file), a file (shapefile, a .csv, a .asc or a OSM file) or a container returned by a request to a database")),
+				@facet (
+						name = IKeyword.NUMBER,
+						type = IType.INT,
+						optional = true,
+						doc = @doc ("an expression that evaluates to an int, the number of created agents")),
+				@facet (
+						name = IKeyword.AS,
+						type = { IType.SPECIES },
+						optional = true,
+						doc = @doc ("")),
+				@facet (
+						name = IKeyword.WITH,
+						type = { IType.MAP },
+						of = IType.NONE,
+						index = IType.STRING,
+						optional = true,
+						doc = @doc ("an expression that evaluates to a map, for each pair the key is a species attribute and the value the assigned value")),
+				@facet (
+						name = IKeyword.HEADER,
+						type = { IType.BOOL },
+						optional = true,
+						doc = @doc (
+								deprecated = "Use a file constructor that specifies the header instead, e.g. csv_file('...', true)",
+								value = "an expression that evaluates to a boolean, when creating agents from csv file, specify whether the file header is loaded")) },
+		omissible = IKeyword.SPECIES)
+@doc (
+		value = "Allows an agent to create `number` agents of species `species`, to create agents of species `species` from a shapefile or to create agents of species `species` from one or several localized entities (discretization of the localized entity geometries).",
+		usages = { @usage (
+				value = "Its simple syntax to create `an_int` agents of species `a_species` is:",
+				examples = { @example (
+						value = "create a_species number: an_int;",
+						isExecutable = false),
+						@example (
+								value = "create species_of(self) number: 5 returns: list5Agents;",
+								isTestOnly = false),
+						@example (
+								var = "list5Agents",
+								returnType = "list",
+								value = "5",
+								isExecutable = false) }),
+				@usage ("If `number` equals 0 or species is not a species, the statement is ignored."), @usage (
+						value = "In GAML modelers can create agents of species `a_species  (with two attributes `type` and `nature` with types corresponding to the types of the shapefile attributes) from a shapefile `the_shapefile` while reading attributes 'TYPE_OCC' and 'NATURE' of the shapefile. One agent will be created by object contained in the shapefile:",
+						examples = @example (
+								value = "create a_species from: the_shapefile with: [type:: read('TYPE_OCC'), nature::read('NATURE')];",
+								isExecutable = false)),
+				@usage (
+						value = "In order to create agents from a .csv file, facet `header` can be used to specified whether we can use columns header:",
+						examples = { @example (
+								value = "create toto from: \"toto.csv\" header: true with:[att1::read(\"NAME\"), att2::read(\"TYPE\")];",
+								isExecutable = false),
+								@example (
+										value = "or",
+										isExecutable = false),
+								@example (
+										value = "create toto from: \"toto.csv\" with:[att1::read(0), att2::read(1)]; //with read(int), the index of the column",
+										isExecutable = false) }),
+				@usage (
+						value = "Similarly to the creation from shapefile, modelers can create agents from a set of geometries. In this case, one agent per geometry will be created (with the geometry as shape)",
+						examples = { @example (
+								value = "create species_of(self) from: [square(4),circle(4)]; 	// 2 agents have been created, with shapes respectively square(4) and circle(4)"),
+								@example (
+										value = "create species_of(self) from: [square(4),circle(4)] returns: new_agt;",
+										isTestOnly = true),
+								@example (
+										value = "new_agt[0].shape",
+										equals = "square(4)",
+										returnType = "geometry",
+										isTestOnly = true),
+								@example (
+										value = "new_agt[1].shape",
+										equals = "circle(4)",
+										returnType = "geometry",
+										isTestOnly = true) }),
+				@usage (
+						value = "Created agents are initialized following the rules of their species. If one wants to refer to them after the statement is executed, the returns keyword has to be defined: the agents created will then be referred to by the temporary variable it declares. For instance, the following statement creates 0 to 4 agents of the same species as the sender, and puts them in the temporary variable children for later use.",
+						examples = { @example (
+								value = "create species (self) number: rnd (4) returns: children;",
+								test = false),
+								@example (
+										value = "ask children {",
+										test = true),
+								@example (
+										value = "        // ...",
+										test = false),
+								@example (
+										value = "}",
+										test = false) }),
+				@usage (
+						value = "If one wants to specify a special initialization sequence for the agents created, create provides the same possibilities as ask. This extended syntax is:",
+						examples = { @example (
+								value = "create a_species number: an_int {",
+								isExecutable = false),
+								@example (
+										value = "     [statements]",
+										isExecutable = false),
+								@example (
+										value = "}",
+										isExecutable = false) }),
+				@usage (
+						value = "The same rules as in ask apply. The only difference is that, for the agents created, the assignments of variables will bypass the initialization defined in species. For instance:",
+						examples = { @example (
+								value = "create species(self) number: rnd (4) returns: children {",
+								isExecutable = false),
+								@example (
+										value = "     set location <- myself.location + {rnd (2), rnd (2)}; // tells the children to be initially located close to me",
+										isExecutable = false),
+								@example (
+										value = "     set parent <- myself; // tells the children that their parent is me (provided the variable parent is declared in this species) ",
+										isExecutable = false),
+								@example (
+										value = "}",
+										isExecutable = false) }),
+				@usage (
+						value = "Desprecated uses: ",
+						examples = { @example (
+								value = "// Simple syntax",
+								isExecutable = false),
+								@example (
+										value = "create species: a_species number: an_int;",
+										isExecutable = false),
+								@example (
+										value = "",
+										isExecutable = false) }) })
+@validator (CreateValidator.class)
+@serializer (CreateSerializer.class)
+@SuppressWarnings ({ "unchecked", "rawtypes" })
 public class CreateStatement extends AbstractStatementSequence implements IStatement.WithArgs {
 
 	public static class CreateValidator implements IDescriptionValidator<StatementDescription> {
@@ -139,7 +238,7 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 		 */
 		@Override
 		public void validate(final StatementDescription cd) {
-			final IExpressionDescription desc = cd.getFacets().get(IKeyword.SPECIES);
+			final IExpressionDescription desc = cd.getFacet(IKeyword.SPECIES);
 			if (desc != null) {
 				final IExpression exp = desc.getExpression();
 				if (exp != null) {
@@ -150,7 +249,9 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 					}
 				}
 			}
-			final SpeciesDescription species = cd.computeSpecies();
+			final SpeciesDescription species = cd.getType().getDenotedSpecies();
+			// final SpeciesDescription species =
+			// cd.getModelDescription().getSpeciesReferencedBy(cd);
 			if (species != null) {
 				if (species.isAbstract()) {
 					cd.error("Species " + species.getName() + " is abstract and cannot be instantiated",
@@ -190,7 +291,7 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 					cd.error("No instance of " + macro.getName() + " available for creating instances of "
 							+ species.getName());
 				}
-				final IExpression exp = cd.getFacets().getExpr(FROM);
+				final IExpression exp = cd.getFacetExpr(FROM);
 				if (exp != null) {
 					final IType type = exp.getType();
 					boolean found = false;
@@ -206,7 +307,13 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 								IGamlIssue.WRONG_TYPE, FROM);
 					}
 				}
-
+				final Facets facets = cd.getPassedArgs();
+				for (final String att : facets.keySet()) {
+					if (!species.isExperiment() && !species.hasAttribute(att)) {
+						cd.error("Attribute " + att + " is not defined in species " + species.getName(),
+								IGamlIssue.UNKNOWN_VAR);
+					}
+				}
 			} else {
 				cd.error("Species cannot be determined");
 			}
@@ -218,30 +325,32 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 	public static class CreateSerializer extends StatementSerializer {
 
 		@Override
-		protected void serializeArgs(final StatementDescription desc, final StringBuilder sb,
-				final boolean ncludingBuiltIn) {
-			final Collection<StatementDescription> args = desc.getArgs();
-			if (args == null || args.isEmpty()) {
-				return;
-			}
+		protected void serializeArgs(final SymbolDescription s, final StringBuilder sb, final boolean ncludingBuiltIn) {
+			final StatementDescription desc = (StatementDescription) s;
+			final Facets args = desc.getPassedArgs();
+			if (args == null || args.isEmpty()) { return; }
 			sb.append("with: [");
-			for (final StatementDescription arg : args) {
-				final String name = arg.getFacets().getLabel(NAME);
-				final IExpressionDescription def = arg.getFacets().get(VALUE);
-				sb.append(name).append("::").append(def.serialize(false));
-				sb.append(", ");
-			}
+			args.forEachEntry(new FacetVisitor() {
+
+				@Override
+				public boolean visit(final String name, final IExpressionDescription exp) {
+					sb.append(name).append("::").append(exp.serialize(false));
+					sb.append(", ");
+					return true;
+				}
+			});
 			sb.setLength(sb.length() - 2);
 			sb.append("]");
 		}
 	}
 
+	// private final ThreadLocal<Arguments> init = new ThreadLocal();
 	private Arguments init;
 	private final IExpression from, number, species, header;
 	private final String returns;
 	private final RemoteSequence sequence;
-	private static List<ICreateDelegate> delegates = new ArrayList();
-	private static List<IType> delegateTypes = new ArrayList();
+	private static List<ICreateDelegate> delegates = new ArrayList<>();
+	private static List<IType> delegateTypes = new ArrayList<>();
 
 	/**
 	 * @param createExecutableExtension
@@ -252,6 +361,10 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 		if (delegateType != null && delegateType != Types.NO_TYPE) {
 			delegateTypes.add(delegate.fromFacetType());
 		}
+	}
+
+	public static void removeDelegate(final ICreateDelegate cd) {
+		delegates.remove(cd);
 	}
 
 	public CreateStatement(final IDescription desc) {
@@ -267,7 +380,7 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 	}
 
 	@Override
-	public void setChildren(final List<? extends ISymbol> com) {
+	public void setChildren(final Iterable<? extends ISymbol> com) {
 		sequence.setChildren(com);
 	}
 
@@ -284,38 +397,36 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 
 		// First, we compute the number of agents to create
 		final Integer max = number == null ? null : Cast.asInt(scope, number.value(scope));
-		if (from == null && max != null && max <= 0) {
-			return GamaListFactory.create();
-		}
+		if (from == null && max != null && max <= 0) { return GamaListFactory.create(); }
 
 		// Next, we compute the species to instantiate
 		IPopulation pop;
-		final IAgent executor = scope.getAgentScope();
+		final IAgent executor = scope.getAgent();
 		if (species == null) {
 			pop = executor.getPopulationFor(description.getSpeciesContext().getName());
 		} else {
 			final ISpecies s = Cast.asSpecies(scope, species.value(scope));
-			if (s == null) {
-				throw GamaRuntimeException.error("No population of " + species.serialize(false)
-						+ " is accessible in the context of " + executor + ".", scope);
-			}
+			if (s == null) { throw GamaRuntimeException.error("No population of " + species.serialize(false)
+					+ " is accessible in the context of " + executor + ".", scope); }
 			pop = executor.getPopulationFor(s);
 			// hqnghi population of micro-model's experiment is not exist, we
 			// must create the new one
 			if (pop == null && s instanceof ExperimentPlan && executor instanceof IMacroAgent) {
-				pop = new ExperimentPopulation(s);
-				final IScope sc = ((ExperimentPlan) s).getExperimentScope();
+				final ExperimentPlan ep = (ExperimentPlan) s;
+				pop = ep.new ExperimentPopulation(s);
+				final IScope sc = ep.getExperimentScope();
 				pop.initializeFor(sc);
-				((IMacroAgent) executor).addExternMicroPopulation(s.getDescription().getModelDescription().getAlias()+"."+s.getName(), pop);
+				((IMacroAgent) executor).addExternMicroPopulation(
+						s.getDescription().getModelDescription().getAlias() + "." + s.getName(), pop);
 			}
 			// end-hqnghi
 		}
 		// scope.addVarWithValue(IKeyword.MYSELF, executor);
 		// We grab whatever initial values are defined (from CSV, GIS, or user)
-		final List<Map> inits = GamaListFactory.create(Types.MAP, max == null ? 10 : max);
+		final List<Map<String, Object>> inits = GamaListFactory.create(Types.MAP, max == null ? 10 : max);
 		final Object source = getSource(scope);
 		for (final ICreateDelegate delegate : delegates) {
-			if (delegate.acceptSource(source)) {
+			if (delegate.acceptSource(scope, source)) {
 				delegate.createFrom(scope, inits, max, source, init, this);
 			}
 		}
@@ -337,9 +448,11 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 		return source;
 	}
 
-	private IList<? extends IAgent> createAgents(final IScope scope, final IPopulation population,
-			final List<Map> inits) {
-		final boolean hasSequence = sequence != null && !sequence.isEmpty();
+	private IList<? extends IAgent> createAgents(final IScope scope, final IPopulation<? extends IAgent> population,
+			final List<Map<String, Object>> inits) {
+		if (population == null)
+			return GamaListFactory.create();
+		// final boolean hasSequence = sequence != null && !sequence.isEmpty();
 		boolean shouldBeScheduled = false;
 		// If we create simulations within a single experiment, we must schedule
 		// them
@@ -350,11 +463,12 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 			}
 		}
 		// As we are in the create statement, the agents are not restored
-		final IList<? extends IAgent> list = population.createAgents(scope, inits.size(), inits, false,
-				shouldBeScheduled);
-		final IMacroAgent currentMacro = population.getHost();
-		if (currentMacro != null)
-			currentMacro.addSubAgents(list.size());
+		final IList<? extends IAgent> list =
+				population.createAgents(scope, inits.size(), inits, false, shouldBeScheduled);
+		// AD Commented this out
+		// final IMacroAgent currentMacro = population.getHost();
+		// if (currentMacro != null)
+		// currentMacro.addSubAgents(list.size());
 
 		// hqnghi in case of creating experiment of micro-models, we must
 		// implicitely initialize it and its simulation output
@@ -362,6 +476,8 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 			for (final IAgent a : population) {
 				((ExperimentAgent) a)._init_(scope);
 				final SimulationAgent sim = ((ExperimentAgent) a).getSimulation();
+				sim.adoptTopologyOf(scope.getSimulation());
+
 				if (!sim.getScheduled()) {
 					// ((ExperimentAgent)
 					// a).getActionExecuter().init(sim.getScope());
@@ -376,8 +492,7 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 		// end-hqnghi
 		if (sequence != null && !sequence.isEmpty()) {
 			for (final IAgent remoteAgent : list.iterable(scope)) {
-				final Object[] result = new Object[1];
-				if (!scope.execute(sequence, remoteAgent, null, result)) {
+				if (!scope.execute(sequence, remoteAgent, null).passed()) {
 					break;
 				}
 			}
@@ -386,12 +501,9 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 	}
 
 	// TODO Call it before calling the ICreateDelegate createFrom method !
-	void fillWithUserInit(final IScope scope, final Map values) {
-		if (init == null) {
-			return;
-		}
+	public void fillWithUserInit(final IScope scope, final Map values) {
+		if (init == null) { return; }
 		scope.pushReadAttributes(values);
-		// Files.tempAttributes.push(values);
 		try {
 			for (final Map.Entry<String, IExpressionDescription> f : init.entrySet()) {
 				if (f != null) {
@@ -409,8 +521,7 @@ public class CreateStatement extends AbstractStatementSequence implements IState
 	}
 
 	@Override
-	public void setRuntimeArgs(final Arguments args) {
-	}
+	public void setRuntimeArgs(final IScope scope, final Arguments args) {}
 
 	/**
 	 * @return

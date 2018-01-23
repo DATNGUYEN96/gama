@@ -31,19 +31,21 @@ global {
 	} 
 	
 	//Different actions triggered by an user interaction
-	action press (point loc, list selected_agents)
+	action press 
 	{
+		point loc <- #user_location;
+		list<ant> selected_agents <- ant overlapping (circle(10) at_location #user_location);
 		write("press " + loc.x + " " + loc.y + " "+selected_agents);
 	}
-	action release (point loc, list selected_agents)
+	action release 
 	{
 		write("release");
 	}
-	action click  (point loc, list selected_agents)
+	action click  
 	{
 		write("click");
 	}
-	action click2   (point loc, list selected_agents)
+	action click2   
 	{
 		write("click2");
 	}
@@ -115,7 +117,7 @@ experiment Simple type:gui {
 	parameter 'Evaporation:' var: evaporation_per_cycle;
 	parameter 'Diffusion Rate:' var: diffusion_rate;
 	output { 
-		display Ants refresh: every(2) { 
+		display Ants refresh: every(2#cycles) { 
 			grid ant_grid;
 			species ant aspect: default;
 			graphics 'displayText' {
@@ -125,7 +127,7 @@ experiment Simple type:gui {
 			event mouse_down action:press;
 			event mouse_up action:release;
 		}  
-		display Ants_2 refresh: every(2) { 
+		display Ants_2 refresh: every(2#cycles) { 
 			grid ant_grid;
 			graphics 'displayText' {
 				draw string ( food_remaining ) size: 24.0 at: { 20 , 20 } color: rgb ( 'white' );

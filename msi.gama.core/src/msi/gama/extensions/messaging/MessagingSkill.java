@@ -1,3 +1,13 @@
+/*********************************************************************************************
+ *
+ * 'MessagingSkill.java, in plugin msi.gama.core, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.extensions.messaging;
 
 import msi.gama.common.interfaces.IKeyword;
@@ -44,7 +54,7 @@ public class MessagingSkill extends Skill {
 			@arg(name = IKeyword.TO, type = IType.NONE, optional = true, doc = @doc("The agent, or server, to which this message will be sent to")),
 			@arg(name = GamaMessage.CONTENTS, type = IType.NONE, optional = false, doc = @doc("The contents of the message, an arbitrary object")) })
 	public GamaMessage primSendMessage(final IScope scope) throws GamaRuntimeException {
-		final IAgent sender = scope.getAgentScope();
+		final IAgent sender = scope.getAgent();
 		Object receiver = scope.getArg("to", IType.NONE);
 		if (receiver == null)
 			receiver = sender;
@@ -65,10 +75,12 @@ public class MessagingSkill extends Skill {
 		return new GamaMailbox();
 	}
 
-	protected GamaMessage createNewMessage(final IScope scope, final Object sender,final Object receivers, final Object contents) {
+	protected GamaMessage createNewMessage(final IScope scope, final Object sender, final Object receivers,
+			final Object contents) {
 		return new GamaMessage(scope, sender, receivers, contents);
 	}
 
+	@SuppressWarnings("rawtypes")
 	protected void effectiveSend(final IScope scope, final GamaMessage message, final Object receiver) {
 		if (receiver instanceof IAgent) {
 			final IAgent agent = (IAgent) receiver;

@@ -1,13 +1,11 @@
 /*********************************************************************************************
+ *
+ * 'ChartLayer.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * 
- * 'ChartLayer.java', in plugin 'msi.gama.application', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gama.outputs.layers.charts;
 
@@ -57,20 +55,17 @@ public class ChartLayer extends AbstractLayer {
 
 	@Override
 	public void privateDrawDisplay(final IScope scope, final IGraphics dg) {
-		if (dg == null || dg.cannotDraw())
-			return;
 		try {
-			// if ( dg.is2D()){
 			int x = getSizeInPixels().x;
 			int y = getSizeInPixels().y;
-			// } else {
 			if (!dg.is2D()) {
 				x = (int) (Math.min(x, y) * 0.80);
 				y = x;
+//				x = (int) (x* 0.80);
+//				y = (int) (y* 0.80);
 			}
-			// }
-			final BufferedImage im = getChart().getImage(scope, x, y);
-			final FileDrawingAttributes attributes = new FileDrawingAttributes(null);
+			final BufferedImage im = getChart().getImage(scope, x, y, dg.getSurface().getData().isAntialias());
+			final FileDrawingAttributes attributes = new FileDrawingAttributes(null, true);
 			dg.drawImage(im, attributes);
 		} catch (IndexOutOfBoundsException | IllegalArgumentException e) {
 			// Do nothing. See Issue #1605
@@ -88,8 +83,9 @@ public class ChartLayer extends AbstractLayer {
 	}
 
 	@Override
-	public String getModelCoordinatesInfo(final int xOnScreen, final int yOnScreen, final IDisplaySurface g) {
-		return getChart().getModelCoordinatesInfo(xOnScreen, yOnScreen, g, positionInPixels);
+	public void getModelCoordinatesInfo(final int xOnScreen, final int yOnScreen, final IDisplaySurface g,
+			final StringBuilder sb) {
+		getChart().getModelCoordinatesInfo(xOnScreen, yOnScreen, g, positionInPixels, sb);
 	}
 
 }

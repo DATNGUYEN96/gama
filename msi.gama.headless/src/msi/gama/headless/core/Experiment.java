@@ -1,9 +1,8 @@
 /*********************************************************************************************
  *
  *
- * 'MoleExperiment.java', in plugin 'msi.gama.headless', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * 'MoleExperiment.java', in plugin 'msi.gama.headless', is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
  *
  * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
  *
@@ -11,23 +10,29 @@
  **********************************************************************************************/
 package msi.gama.headless.core;
 
-import msi.gama.kernel.experiment.*;
+import msi.gama.kernel.experiment.IExperimentPlan;
+import msi.gama.kernel.experiment.ParametersSet;
 import msi.gama.kernel.model.IModel;
 import msi.gama.kernel.simulation.SimulationAgent;
-import msi.gama.outputs.*;
-import msi.gama.runtime.*;
+import msi.gama.outputs.AbstractOutputManager;
+import msi.gama.outputs.IOutput;
+import msi.gama.outputs.MonitorOutput;
+import msi.gama.runtime.GAMA;
+import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
+import msi.gama.util.GAML;
+import msi.gaml.expressions.IExpression;
 
 public class Experiment implements IExperiment {
 
-	public static final long DEFAULT_SEED_VALUE = 0;
+	public static final double DEFAULT_SEED_VALUE = 0;
 
 	protected IExperimentPlan currentExperiment;
 	protected SimulationAgent currentSimulation;
 	protected ParametersSet params;
 	protected IModel model;
 	protected String experimentName;
-	protected long seed;
+	protected double seed;
 	protected long currentStep;
 
 	protected Experiment() {
@@ -44,6 +49,11 @@ public class Experiment implements IExperiment {
 		this.model = mdl;
 	}
 
+	@Override
+	public SimulationAgent getSimulation() {
+		return currentSimulation;
+	}
+
 	protected IScope getScope() {
 		return this.currentExperiment.getCurrentSimulation().getScope();
 	}
@@ -55,7 +65,7 @@ public class Experiment implements IExperiment {
 	}
 
 	@Override
-	public void setup(final String expName, final long sd) {
+	public void setup(final String expName, final double sd) {
 		this.seed = sd;
 		this.loadCurrentExperiment(expName);
 	}
@@ -72,9 +82,13 @@ public class Experiment implements IExperiment {
 	@Override
 	public long step() {
 		if (currentExperiment.isBatch()) {
-			//Currently, the batch have the own way to control their simulations so we call the experiment to do step instead of demand simulation
-			//MUST BE RE-ORGANIZE [ THE MULTI-SIMULATION + HEADLESS SIMULATION + BATCH SIMULATION ]
-			currentExperiment.getAgent().getSimulation().removeAgent();
+			// Currently, the batch have the own way to control their
+			// simulations so we call the experiment to do step instead of
+			// demand simulation
+			// MUST BE RE-ORGANIZE [ THE MULTI-SIMULATION + HEADLESS SIMULATION
+			// + BATCH SIMULATION ]
+			// AD commented this
+			// currentExperiment.getAgent().getSimulation().removeAgent();
 			currentExperiment.getController().getScheduler().paused = false;
 			currentExperiment.getAgent().step(currentExperiment.getAgent().getScope());
 		} else {
@@ -86,7 +100,7 @@ public class Experiment implements IExperiment {
 
 	@Override
 	public void setParameter(final String parameterName, final Object value) {
-		if ( this.params.containsKey(parameterName) ) {
+		if (this.params.containsKey(parameterName)) {
 			this.params.remove(parameterName);
 		}
 		this.params.put(parameterName, value);
@@ -94,13 +108,14 @@ public class Experiment implements IExperiment {
 
 	@Override
 	public Object getOutput(final String parameterName) {
-		IOutput output =
-			((AbstractOutputManager) currentSimulation.getOutputManager()).getOutputWithOriginalName(parameterName);
-//		System.out.
-		if ( output == null)
-			throw GamaRuntimeException.error("Output does not exist: " + parameterName );
-		if(!(output instanceof MonitorOutput) ) 
-			throw GamaRuntimeException.error("Output " + parameterName+ " is not an alphanumeric data." ); 
+		final IOutput output =
+				((AbstractOutputManager) currentSimulation.getOutputManager()).getOutputWithOriginalName(parameterName);
+		// System.out.
+		if (output == null)
+			throw GamaRuntimeException.error("Output does not exist: " + parameterName, currentSimulation.getScope());
+		if (!(output instanceof MonitorOutput))
+			throw GamaRuntimeException.error("Output " + parameterName + " is not an alphanumeric data.",
+					currentSimulation.getScope());
 		output.update();
 		return ((MonitorOutput) output).getLastValue();
 	}
@@ -108,8 +123,10 @@ public class Experiment implements IExperiment {
 	@Override
 	public Object getVariableOutput(final String parameterName) {
 		// this.currentExperiment.getSimulationOutputs().step(this.getScope());
-		Object res = this.currentExperiment.getCurrentSimulation().getDirectVarValue(this.getScope(), parameterName);
-		if ( res == null ) { throw GamaRuntimeException.error("Output unresolved: "+ parameterName); }
+		final Object res =
+				this.currentExperiment.getCurrentSimulation().getDirectVarValue(this.getScope(), parameterName);
+		if (res == null) { throw GamaRuntimeException.error("Output unresolved: " + parameterName,
+				currentSimulation.getScope()); }
 		return res;
 	}
 
@@ -120,9 +137,10 @@ public class Experiment implements IExperiment {
 
 	@Override
 	public boolean isInterrupted() {
-		return currentExperiment.getAgent().getSimulation() == null ||
-			currentExperiment.getAgent().getSimulation().dead() ||
-			currentExperiment.getAgent().getSimulation().getScope().interrupted();// currentExperiment.getAgent().dead(); //().interrupted();
+		final SimulationAgent sim = currentExperiment.getCurrentSimulation();
+		if (currentExperiment.isBatch() && sim == null)
+			return false;
+		return sim == null || sim.dead() || sim.getScope().interrupted();
 	}
 
 	@Override
@@ -130,9 +148,27 @@ public class Experiment implements IExperiment {
 		// TODO Auto-generated method stub
 		return this.model;
 	}
-	
-	public IExperimentPlan getExperimentPlan()
-	{
+
+	@Override
+	public IExperimentPlan getExperimentPlan() {
 		return this.currentExperiment;
 	}
+
+	@Override
+	public IExpression compileExpression(final String expression) {
+		System.out.println("expression " + expression);
+		return GAML.compileExpression(expression, this.getSimulation(), false);
+	}
+
+	@Override
+	public Object evaluateExpression(final IExpression exp) {
+		return exp.value(this.getSimulation().getScope());
+	}
+
+	@Override
+	public Object evaluateExpression(final String exp) {
+		final IExpression localExpression = compileExpression(exp);
+		return evaluateExpression(localExpression);
+	}
+
 }

@@ -1,13 +1,11 @@
 /*********************************************************************************************
+ *
+ * 'ParameterAdapter.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * 
- * 'ParameterAdapter.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gama.kernel.experiment;
 
@@ -17,11 +15,14 @@ import java.util.Set;
 import msi.gama.common.util.StringUtils;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
+import msi.gaml.descriptions.SymbolDescription;
 import msi.gaml.types.IType;
 import msi.gaml.types.Types;
 
+@SuppressWarnings ({ "rawtypes" })
 public abstract class ParameterAdapter implements IParameter.Batch {
 
+	private final int order = SymbolDescription.ORDER++;
 	protected boolean editable;
 	protected String title;
 	protected final IType type;
@@ -47,6 +48,11 @@ public abstract class ParameterAdapter implements IParameter.Batch {
 	public String serializeToGaml() {
 		// GamlSerializer gs = new GamlSerializer();
 		return "";
+	}
+
+	@Override
+	public int getOrder() {
+		return order;
 	}
 
 	@Override
@@ -90,14 +96,13 @@ public abstract class ParameterAdapter implements IParameter.Batch {
 		return unitLabel;
 	}
 
-	@Override
-	public Integer getDefinitionOrder() {
-		return 0;
-	}
+	// @Override
+	// public Integer getDefinitionOrder() {
+	// return 0;
+	// }
 
 	@Override
-	public void setValue(final IScope scope, final Object value) {
-	}
+	public void setValue(final IScope scope, final Object value) {}
 
 	@Override
 	public Object value(final IScope iScope) throws GamaRuntimeException {
@@ -143,8 +148,7 @@ public abstract class ParameterAdapter implements IParameter.Batch {
 	public abstract Object value();
 
 	@Override
-	public void reinitRandomly(final IScope scope) {
-	}
+	public void reinitRandomly(final IScope scope) {}
 
 	//
 	// @Override
@@ -181,7 +185,11 @@ public abstract class ParameterAdapter implements IParameter.Batch {
 	}
 
 	@Override
-	public void setDefined(final boolean defined) {
+	public void setDefined(final boolean defined) {}
+
+	@Override
+	public boolean acceptsSlider(final IScope scope) {
+		return false;
 	}
 
 }

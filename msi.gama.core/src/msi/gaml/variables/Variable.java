@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'Variable.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform. (c)
+ * 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'Variable.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.variables;
@@ -14,8 +12,11 @@ package msi.gaml.variables;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.base.Objects;
+
 import msi.gama.common.interfaces.IGamlIssue;
 import msi.gama.common.interfaces.IKeyword;
+import msi.gama.common.interfaces.ISkill;
 import msi.gama.metamodel.agent.IAgent;
 import msi.gama.precompiler.GamlAnnotations.doc;
 import msi.gama.precompiler.GamlAnnotations.facet;
@@ -34,13 +35,12 @@ import msi.gaml.compilation.Symbol;
 import msi.gaml.descriptions.ConstantExpressionDescription;
 import msi.gaml.descriptions.IDescription;
 import msi.gaml.descriptions.IExpressionDescription;
-import msi.gaml.descriptions.SpeciesDescription;
 import msi.gaml.descriptions.VariableDescription;
 import msi.gaml.expressions.IExpression;
-import msi.gaml.expressions.IExpressionCompiler;
+import msi.gaml.expressions.ListExpression;
 import msi.gaml.operators.Cast;
-import msi.gaml.skills.ISkill;
-import msi.gaml.statements.Facets;
+import msi.gaml.species.AbstractSpecies;
+import msi.gaml.statements.IExecutable;
 import msi.gaml.types.GamaListType;
 import msi.gaml.types.IType;
 import msi.gaml.types.Types;
@@ -49,37 +49,92 @@ import msi.gaml.types.Types;
  * The Class Var.
  *
  *
- * FIXME FOR THE MOMENT SPECIES_WIDE CONSTANTS ARE NOT CONSIDERED (TOO MANY
- * THINGS TO CONSIDER AND POSSIBILITIES TO MAKE FALSE POSITIVE)
+ * FIXME FOR THE MOMENT SPECIES_WIDE CONSTANTS ARE NOT CONSIDERED (TOO MANY THINGS TO CONSIDER AND POSSIBILITIES TO MAKE
+ * FALSE POSITIVE)
  */
-@facets(value = {
-		@facet(name = IKeyword.NAME, type = IType.NEW_VAR_ID, optional = false, doc = @doc("The name of the attribute")),
-		@facet(name = IKeyword.TYPE, type = IType.TYPE_ID, optional = true, doc = {
-				@doc("The type of this attribute. Can be combined with facets 'of' and 'index' to describe container types") }),
-		@facet(name = IKeyword.OF, type = IType.TYPE_ID, optional = true, doc = {
-				@doc("The type of the elements contained in the type of this attribute if it is a container type") }),
-		@facet(name = IKeyword.INDEX, type = IType.TYPE_ID, optional = true, doc = {
-				@doc("The type of the index used to retrieve elements if the type of the attribute is a container type") }),
-		@facet(name = IKeyword.INIT,
-				// AD 02/16 TODO Allow to declare ITypeProvider.OWNER_TYPE here
-				type = IType.NONE, optional = true, doc = @doc("The initial value of the attribute")),
-		@facet(name = IKeyword.VALUE,
-				// AD 02/16 TODO Allow to declare ITypeProvider.OWNER_TYPE here
-				type = IType.NONE, optional = true, doc = @doc(value = "", deprecated = "Use 'update' instead")),
-		@facet(name = IKeyword.UPDATE,
-				// AD 02/16 TODO Allow to declare ITypeProvider.OWNER_TYPE here
-				type = IType.NONE, optional = true, doc = @doc("An expression that will be evaluated each cycle to compute a new value for the attribute")),
-		@facet(name = IKeyword.FUNCTION,
-				// AD 02/16 TODO Allow to declare ITypeProvider.OWNER_TYPE here
-				type = IType.NONE, optional = true, doc = @doc("Used to specify an expression that will be evaluated each time the attribute is accessed. This facet is incompatible with both 'init:' and 'update:'")),
-		@facet(name = IKeyword.CONST, type = IType.BOOL, optional = true, doc = @doc("Indicates whether this attribute can be subsequently modified or not")),
-		@facet(name = IKeyword.CATEGORY, type = IType.LABEL, optional = true, doc = @doc("Soon to be deprecated. Declare the parameter in an experiment instead")),
-		@facet(name = IKeyword.PARAMETER, type = IType.LABEL, optional = true, doc = @doc("Soon to be deprecated. Declare the parameter in an experiment instead")),
-		@facet(name = IKeyword.AMONG, type = IType.LIST, optional = true, doc = @doc("A list of constant values among which the attribute can take its value")) }, omissible = IKeyword.NAME)
-@symbol(kind = ISymbolKind.Variable.REGULAR, with_sequence = false, concept = { IConcept.ATTRIBUTE })
-@inside(kinds = { ISymbolKind.SPECIES, ISymbolKind.EXPERIMENT, ISymbolKind.MODEL })
-@doc("Allows to declare an attribute of a species or an experiment")
-@validator(msi.gaml.variables.Variable.VarValidator.class)
+@facets (
+		value = { @facet (
+				name = IKeyword.NAME,
+				type = IType.NEW_VAR_ID,
+				optional = false,
+				doc = @doc ("The name of the attribute")),
+				@facet (
+						name = IKeyword.TYPE,
+						type = IType.TYPE_ID,
+						optional = true,
+						doc = { @doc ("The type of this attribute. Can be combined with facets 'of' and 'index' to describe container types") }),
+				@facet (
+						name = IKeyword.OF,
+						type = IType.TYPE_ID,
+						optional = true,
+						doc = { @doc ("The type of the elements contained in the type of this attribute if it is a container type") }),
+				@facet (
+						name = IKeyword.INDEX,
+						type = IType.TYPE_ID,
+						optional = true,
+						doc = { @doc ("The type of the index used to retrieve elements if the type of the attribute is a container type") }),
+				@facet (
+						name = IKeyword.INIT,
+						// AD 02/16 TODO Allow to declare ITypeProvider.OWNER_TYPE here
+						type = IType.NONE,
+						optional = true,
+						doc = @doc ("The initial value of the attribute")),
+				@facet (
+						name = IKeyword.VALUE,
+						// AD 02/16 TODO Allow to declare ITypeProvider.OWNER_TYPE here
+						type = IType.NONE,
+						optional = true,
+						doc = @doc (
+								value = "",
+								deprecated = "Use 'update' instead")),
+				@facet (
+						name = IKeyword.UPDATE,
+						// AD 02/16 TODO Allow to declare ITypeProvider.OWNER_TYPE here
+						type = IType.NONE,
+						optional = true,
+						doc = @doc ("An expression that will be evaluated each cycle to compute a new value for the attribute")),
+				@facet (
+						name = IKeyword.ON_CHANGE,
+						type = IType.NONE,
+						optional = true,
+						doc = @doc ("Provides a block of statements that will be executed whenever the value of the attribute changes")),
+
+				@facet (
+						name = IKeyword.FUNCTION,
+						// AD 02/16 TODO Allow to declare ITypeProvider.OWNER_TYPE here
+						type = IType.NONE,
+						optional = true,
+						doc = @doc ("Used to specify an expression that will be evaluated each time the attribute is accessed. This facet is incompatible with both 'init:' and 'update:'")),
+				@facet (
+						name = IKeyword.CONST,
+						type = IType.BOOL,
+						optional = true,
+						doc = @doc ("Indicates whether this attribute can be subsequently modified or not")),
+				@facet (
+						name = IKeyword.CATEGORY,
+						type = IType.LABEL,
+						optional = true,
+						doc = @doc ("Soon to be deprecated. Declare the parameter in an experiment instead")),
+				@facet (
+						name = IKeyword.PARAMETER,
+						type = IType.LABEL,
+						optional = true,
+						doc = @doc ("Soon to be deprecated. Declare the parameter in an experiment instead")),
+				@facet (
+						name = IKeyword.AMONG,
+						type = IType.LIST,
+						optional = true,
+						doc = @doc ("A list of constant values among which the attribute can take its value")) },
+		omissible = IKeyword.NAME)
+@symbol (
+		kind = ISymbolKind.Variable.REGULAR,
+		with_sequence = false,
+		concept = { IConcept.ATTRIBUTE })
+@inside (
+		kinds = { ISymbolKind.SPECIES, ISymbolKind.EXPERIMENT, ISymbolKind.MODEL })
+@doc ("Allows to declare an attribute of a species or an experiment")
+@validator (msi.gaml.variables.Variable.VarValidator.class)
+@SuppressWarnings ({ "rawtypes" })
 public class Variable extends Symbol implements IVariable {
 
 	public static class VarValidator implements IDescriptionValidator {
@@ -100,7 +155,7 @@ public class Variable extends Symbol implements IVariable {
 			final String name = cd.getName();
 			// Verifying that the name is not null
 			if (name == null) {
-				cd.error("The variable name is missing", IGamlIssue.MISSING_NAME);
+				cd.error("The attribute name is missing", IGamlIssue.MISSING_NAME);
 				return;
 			}
 
@@ -108,32 +163,43 @@ public class Variable extends Symbol implements IVariable {
 				// Verifying that the name is not a type
 				final IType t = cd.getEnclosingDescription().getTypeNamed(name);
 				if (t != Types.NO_TYPE && !t.isAgentType()) {
-					cd.error(name + " is a type name. It cannot be used as a variable name", IGamlIssue.IS_A_TYPE, NAME,
-							name);
+					cd.error(name + " is a type name. It cannot be used as an attribute name", IGamlIssue.IS_A_TYPE,
+							NAME, name);
 					return;
 				}
 				// Verifying that the name is not reserved
-				if (IExpressionCompiler.RESERVED.contains(name)) {
-					cd.error(name + " is a reserved keyword. It cannot be used as a variable name",
+				if (RESERVED.contains(name)) {
+					cd.error(name + " is a reserved keyword. It cannot be used as an attribute name",
 							IGamlIssue.IS_RESERVED, NAME, name);
 					return;
 				}
+				// if the step is defined with simply an init, we copy the init
+				// expression to the update facet as well, so that it is
+				// recomputed every time it changes (necessary for
+				// time-dependent units. Should be done, actually, for any
+				// variable that manipulaes time-dependent units
+				if (name.equals(STEP)) {
+					if (cd.hasFacet(INIT) && !cd.hasFacet(UPDATE) && !cd.hasFacet(VALUE)) {
+						cd.setFacet(UPDATE, cd.getFacet(INIT));
+					}
+				}
 			}
 			// The name is ok. Now verifying the logic of facets
-			final Facets ff = cd.getFacets();
 			// Verifying that 'function' is not used in conjunction with other
 			// "value" facets
-			if (ff.containsKey(FUNCTION) && (ff.containsKey(INIT) || ff.containsKey(UPDATE) || ff.containsKey(VALUE))) {
-				cd.error("A function cannot have an 'init' or 'update' facet", IGamlIssue.REMOVE_VALUE, FUNCTION);
+			if (cd.hasFacet(FUNCTION)
+					&& (cd.hasFacet(INIT) || cd.hasFacet(UPDATE) || cd.hasFacet(VALUE) || cd.hasFacet(ON_CHANGE))) {
+				cd.error("A function cannot have an 'init', 'on_change' or 'update' facet", IGamlIssue.REMOVE_VALUE,
+						FUNCTION);
 				return;
 			}
 			// Verifying that a constant has not 'update' or 'function' facet
 			// and is not a parameter
-			if (ff.equals(CONST, TRUE)) {
-				if (ff.containsKey(VALUE) | ff.containsKey(UPDATE)) {
-					cd.warning("A constant variable cannot have an update value (use init or <- instead)",
+			if (TRUE.equals(cd.getLitteral(CONST))) {
+				if (cd.hasFacet(VALUE) || cd.hasFacet(UPDATE)) {
+					cd.warning("A constant attribute cannot have an update value (use init or <- instead)",
 							IGamlIssue.REMOVE_CONST, UPDATE);
-				} else if (ff.containsKey(FUNCTION)) {
+				} else if (cd.hasFacet(FUNCTION)) {
 					cd.error("A function cannot be constant (use init or <- instead)", IGamlIssue.REMOVE_CONST,
 							FUNCTION);
 					return;
@@ -141,28 +207,54 @@ public class Variable extends Symbol implements IVariable {
 					cd.error("Parameter '" + cd.getParameterName() + "'  cannot be declared as constant ",
 							IGamlIssue.REMOVE_CONST);
 					return;
+				} else if (cd.hasFacet(ON_CHANGE)) {
+					cd.warning("A constant attribute cannot declare an on_change facet", IGamlIssue.REMOVE_CONST,
+							ON_CHANGE);
 				}
 			}
 			if (cd.isParameter()) {
 				assertCanBeParameter(cd);
 			} else {
-				assertValueFacetsTypes(cd, ff, cd.getType());
+				assertValueFacetsTypes(cd, cd.getType());
 			}
-			assertAssignmentFacetsTypes(cd, ff);
+			assertAssignmentFacetsTypes(cd);
+			assertAmongValues(cd);
 		}
 
-		public void assertAssignmentFacetsTypes(final VariableDescription vd, final Facets facets) {
+		public void assertAmongValues(final VariableDescription vd) {
+			// if (vd.isParameter() && vd.getSpeciesContext().isExperiment()
+			// && ((ExperimentDescription) vd.getSpeciesContext()).isBatch())
+			// return;
+			final IExpression amongExpression = vd.getFacetExpr(AMONG);
+			final IExpression initExpression = vd.getFacetExpr(INIT);
+			if (amongExpression == null || initExpression == null)
+				return;
+			if (!(amongExpression instanceof ListExpression) || !initExpression.isConst())
+				return;
+			final ListExpression list = (ListExpression) amongExpression;
+			final Object init = initExpression.value(null);
+			if (!list.containsValue(init)) {
+				vd.warning(
+						"The initial value of " + vd.getName()
+								+ " does not belong to the list of possible values. It will be initialized to "
+								+ list.getElements()[0].serialize(true) + " instead.",
+						IGamlIssue.WRONG_VALUE, IKeyword.AMONG);
+			}
+
+		}
+
+		public void assertAssignmentFacetsTypes(final VariableDescription vd) {
 			for (final String s : assignmentFacets) {
-				Assert.typesAreCompatibleForAssignment(vd, vd.getName(),
-						vd.getType(), /* vd.getContentType(), */
-						facets.get(s));
+				Assert.typesAreCompatibleForAssignment(vd, vd.getName(), vd.getType(), /* vd.getContentType(), */
+						vd.getFacet(s));
 			}
 		}
 
-		public void assertValueFacetsTypes(final VariableDescription vd, final Facets facets, final IType vType) {
-			final IType type = null;
-			final String firstValueFacet = null;
-			final IExpression amongExpression = facets.getExpr(AMONG);
+		public void assertValueFacetsTypes(final VariableDescription vd, final IType<?> vType) {
+
+			// final IType type = null;
+			// final String firstValueFacet = null;
+			final IExpression amongExpression = vd.getFacetExpr(AMONG);
 			if (amongExpression != null && !vType.isAssignableFrom(amongExpression.getType().getContentType())) {
 				vd.error("Variable " + vd.getName() + " of type " + vType + " cannot be chosen among "
 						+ amongExpression.serialize(false), IGamlIssue.NOT_AMONG, AMONG);
@@ -171,10 +263,9 @@ public class Variable extends Symbol implements IVariable {
 		}
 
 		public void assertCanBeParameter(final VariableDescription cd) {
-			final Facets facets = cd.getFacets();
-			if (facets.equals(KEYWORD, PARAMETER)) {
-				final String varName = facets.getLabel(VAR);
-				final VariableDescription targetedVar = cd.getModelDescription().getVariable(varName);
+			if (PARAMETER.equals(cd.getKeyword()) /* facets.equals(KEYWORD, PARAMETER) */) {
+				final String varName = cd.getLitteral(VAR);
+				final VariableDescription targetedVar = cd.getModelDescription().getAttribute(varName);
 				if (targetedVar == null) {
 					final String p = "Parameter '" + cd.getParameterName() + "' ";
 					cd.error(p + "cannot refer to the non-global variable " + varName, IGamlIssue.UNKNOWN_VAR,
@@ -187,22 +278,22 @@ public class Variable extends Symbol implements IVariable {
 							IKeyword.TYPE);
 					return;
 				}
-				assertValueFacetsTypes(cd, facets, targetedVar.getType());
+				assertValueFacetsTypes(cd, targetedVar.getType());
 			}
-			assertValueFacetsTypes(cd, facets, cd.getType());
-			final IExpression min = facets.getExpr(MIN);
+			assertValueFacetsTypes(cd, cd.getType());
+			final IExpression min = cd.getFacetExpr(MIN);
 			if (min != null && !min.isConst()) {
 				final String p = "Parameter '" + cd.getParameterName() + "' ";
 				cd.error(p + " min value must be constant", IGamlIssue.NOT_CONST, MIN);
 				return;
 			}
-			final IExpression max = facets.getExpr(MAX);
+			final IExpression max = cd.getFacetExpr(MAX);
 			if (max != null && !max.isConst()) {
 				final String p = "Parameter '" + cd.getParameterName() + "' ";
 				cd.error(p + " max value must be constant", IGamlIssue.NOT_CONST, MAX);
 				return;
 			}
-			final IExpression init = facets.getExpr(INIT);
+			final IExpression init = cd.getFacetExpr(INIT);
 
 			if (init == null) {
 				final String p = "Parameter '" + cd.getParameterName() + "' ";
@@ -219,7 +310,7 @@ public class Variable extends Symbol implements IVariable {
 			// IGamlIssue.NOT_CONST, INIT);
 			// return;
 			// }
-			if (facets.containsKey(UPDATE) || facets.containsKey(VALUE) || facets.containsKey(FUNCTION)) {
+			if (cd.hasFacet(UPDATE) || cd.hasFacet(VALUE) || cd.hasFacet(FUNCTION)) {
 				final String p = "Parameter '" + cd.getParameterName() + "' ";
 				cd.error(p + "cannot have an 'update', 'value' or 'function' facet", IGamlIssue.REMOVE_VALUE);
 			}
@@ -227,11 +318,12 @@ public class Variable extends Symbol implements IVariable {
 
 	}
 
-	protected IExpression updateExpression, initExpression, amongExpression, functionExpression;
+	protected IExpression updateExpression, initExpression, amongExpression, functionExpression, onChangeExpression;
 	protected IType type/* , contentType */;
 	protected boolean isNotModifiable /* , doUpdate */;
-	private final int definitionOrder;
+	// private final int definitionOrder;
 	public GamaHelper getter, initer, setter;
+	private IExecutable on_changer;
 	protected String /* gName, sName, iName, */ pName, cName;
 	protected ISkill gSkill/* , iSkill */, sSkill;
 
@@ -239,31 +331,31 @@ public class Variable extends Symbol implements IVariable {
 		super(sd);
 		final VariableDescription desc = (VariableDescription) sd;
 		// doUpdate = true;
-		setName(getFacet(IKeyword.NAME).literalValue());
+		setName(sd.getName());
 		pName = desc.getParameterName();
 		cName = getLiteral(IKeyword.CATEGORY, null);
 		updateExpression = getFacet(IKeyword.VALUE, IKeyword.UPDATE);
 		functionExpression = getFacet(IKeyword.FUNCTION);
 		initExpression = getFacet(IKeyword.INIT);
 		amongExpression = getFacet(IKeyword.AMONG);
+		onChangeExpression = getFacet(IKeyword.ON_CHANGE);
 		isNotModifiable = desc.isNotModifiable();
 		type = desc.getType();
 		// contentType = desc.getContentType();
-		definitionOrder = desc.getDefinitionOrder();
-		buildHelpers(desc);
+		// definitionOrder = desc.getDefinitionOrder();
 	}
 
-	private void buildHelpers(final VariableDescription var) {
-		final SpeciesDescription species = var.getSpeciesContext();
-		getter = var.getGetter();
+	private void buildHelpers(final AbstractSpecies species) {
+		getter = getDescription().getGetter();
 		if (getter != null) {
-			gSkill = species.getSkillFor(getter.getSkillClass());
+			gSkill = species.getSkillInstanceFor(getter.getSkillClass());
 		}
-		initer = var.getIniter();
-		setter = var.getSetter();
+		initer = getDescription().getIniter();
+		setter = getDescription().getSetter();
 		if (setter != null) {
-			sSkill = species.getSkillFor(setter.getSkillClass());
+			sSkill = species.getSkillInstanceFor(setter.getSkillClass());
 		}
+
 	}
 
 	protected Object coerce(final IAgent agent, final IScope scope, final Object v) throws GamaRuntimeException {
@@ -337,6 +429,11 @@ public class Variable extends Symbol implements IVariable {
 	}
 
 	@Override
+	public boolean isFunction() {
+		return functionExpression != null;
+	}
+
+	@Override
 	public IType getType() {
 		return type;
 	}
@@ -344,16 +441,15 @@ public class Variable extends Symbol implements IVariable {
 	@Override
 	public void initializeWith(final IScope scope, final IAgent a, final Object v) throws GamaRuntimeException {
 		try {
-			// doUpdate = false;
+			scope.setCurrentSymbol(this);
 			if (v != null) {
 				_setVal(a, scope, v);
 			} else if (initExpression != null) {
-				_setVal(a, scope, scope.evaluate(initExpression, a));
+				_setVal(a, scope, scope.evaluate(initExpression, a).getValue());
 			} else if (initer != null) {
 				final Object val = initer.run(scope, a, gSkill == null ? a : gSkill);
 				_setVal(a, scope, val);
 			} else {
-				// doUpdate = true;
 				_setVal(a, scope, getType().getDefault());
 			}
 		} catch (final GamaRuntimeException e) {
@@ -372,14 +468,13 @@ public class Variable extends Symbol implements IVariable {
 		return cName;
 	}
 
-	@Override
-	public Integer getDefinitionOrder() {
-		return definitionOrder;
-	}
+	// @Override
+	// public Integer getDefinitionOrder() {
+	// return definitionOrder;
+	// }
 
 	@Override
-	public void setChildren(final List<? extends ISymbol> children) {
-	}
+	public void setChildren(final Iterable<? extends ISymbol> children) {}
 
 	@Override
 	public String getName() {
@@ -393,15 +488,19 @@ public class Variable extends Symbol implements IVariable {
 
 	@Override
 	public final void setVal(final IScope scope, final IAgent agent, final Object v) throws GamaRuntimeException {
-		if (isNotModifiable) {
-			return;
-		}
+		if (isNotModifiable) { return; }
+		final Object oldValue = onChangeExpression == null ? null : value(scope, agent);
 		_setVal(agent, scope, v);
+		if (onChangeExpression != null && !Objects.equal(oldValue, v)) {
+			if (on_changer == null) {
+				on_changer = agent.getSpecies().getAction(Cast.asString(scope, onChangeExpression.value(scope)));
+			}
+			scope.execute(on_changer, agent, null);
+		}
 	}
 
 	protected void _setVal(final IAgent agent, final IScope scope, final Object v) throws GamaRuntimeException {
 		Object val;
-
 		val = coerce(agent, scope, v);
 		val = checkAmong(agent, scope, val);
 		if (setter != null) {
@@ -412,53 +511,26 @@ public class Variable extends Symbol implements IVariable {
 	}
 
 	protected Object checkAmong(final IAgent agent, final IScope scope, final Object val) throws GamaRuntimeException {
-		if (amongExpression == null) {
-			return val;
-		}
-		final List among = Cast.asList(scope, scope.evaluate(amongExpression, agent));
-		if (among == null) {
-			return val;
-		}
-		if (among.contains(val)) {
-			return val;
-		}
-		if (among.isEmpty()) {
-			return null;
-		}
+		if (amongExpression == null) { return val; }
+		final List among = Cast.asList(scope, scope.evaluate(amongExpression, agent).getValue());
+		if (among == null) { return val; }
+		if (among.contains(val)) { return val; }
+		if (among.isEmpty()) { return null; }
 		throw GamaRuntimeException.error("Value " + val + " is not included in the possible values of variable " + name,
 				scope);
 	}
 
 	@Override
 	public Object value(final IScope scope) throws GamaRuntimeException {
-		return value(scope, scope.getAgentScope());
+		return value(scope, scope.getAgent());
 	}
 
 	@Override
 	public Object value(final IScope scope, final IAgent agent) throws GamaRuntimeException {
-		if (getter != null) {
-			return getter.run(scope, agent, gSkill == null ? agent : gSkill);
-		}
-		if (functionExpression != null) {
-			return scope.evaluate(functionExpression, agent);
-		}
+		if (getter != null) { return getter.run(scope, agent, gSkill == null ? agent : gSkill); }
+		if (functionExpression != null) { return scope.evaluate(functionExpression, agent).getValue(); }
 		return agent.getAttribute(name);
 	}
-
-	// @Override
-	// public void updateFor(final IScope scope, final IAgent agent) throws
-	// GamaRuntimeException {
-	// // if ( !doUpdate ) {
-	// // doUpdate = true;
-	// // return;
-	// // }
-	// try {
-	// _setVal(agent, scope, updateExpression.value(scope));
-	// } catch (final GamaRuntimeException e) {
-	// e.addContext("in updating attribute " + getName());
-	// throw e;
-	// }
-	// }
 
 	@Override
 	public Object getUpdatedValue(final IScope scope) {
@@ -482,9 +554,7 @@ public class Variable extends Symbol implements IVariable {
 
 	@Override
 	public List getAmongValue(final IScope scope) {
-		if (amongExpression == null) {
-			return null;
-		}
+		if (amongExpression == null) { return null; }
 		// if (!amongExpression.isConst()) {
 		// return null;
 		// }
@@ -514,22 +584,12 @@ public class Variable extends Symbol implements IVariable {
 	}
 
 	@Override
-	public void setUnitLabel(final String label) {
-	}
+	public void setUnitLabel(final String label) {}
 
 	@Override
 	public boolean isEditable() {
 		return true;
 	}
-
-	// @Override
-	// public boolean isLabel() {
-	// return false;
-	// }
-
-	// public ISkill getgSkill() {
-	// return gSkill;
-	// }
 
 	/**
 	 * Method isDefined()
@@ -547,17 +607,29 @@ public class Variable extends Symbol implements IVariable {
 	 * @see msi.gama.kernel.experiment.IParameter#setDefined(boolean)
 	 */
 	@Override
-	public void setDefined(final boolean b) {
+	public void setDefined(final boolean b) {}
+
+	@Override
+	public boolean acceptsSlider(final IScope scope) {
+		// No facets are available to describe whether or not a slider should be
+		// defined. AD change: if we are int or float and max, min and step are defined, we accept it for number
+		// variables;
+
+		return false;
 	}
 
-	/**
-	 * Method getContentType()
-	 * 
-	 * @see msi.gama.kernel.experiment.IParameter#getContentType()
-	 */
-	// @Override
-	// public IType getContentType() {
-	// return contentType;
-	// }
+	@Override
+	public void setEnclosing(final ISymbol enclosing) {
+		if (enclosing instanceof AbstractSpecies)
+			buildHelpers((AbstractSpecies) enclosing);
+	}
+
+	@Override
+	public boolean isMicroPopulation() {
+		final VariableDescription desc = getDescription();
+		if (desc == null)
+			return false;
+		return desc.isSyntheticSpeciesContainer();
+	}
 
 }

@@ -1,13 +1,11 @@
 /*********************************************************************************************
+ *
+ * 'IParameter.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * 
- * 'IParameter.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gama.kernel.experiment;
 
@@ -24,24 +22,15 @@ import msi.gaml.types.IType;
  * @todo Description
  * 
  */
-public interface IParameter {
+public interface IParameter extends IExperimentDisplayable {
 
-	public abstract String getName();
-
-	public abstract String getTitle();
-
-	public abstract String getCategory();
-
-	public abstract String getUnitLabel(IScope scope);
-
-	public void setUnitLabel(String label);
-
-	public abstract Integer getDefinitionOrder();
+	// public abstract Integer getDefinitionOrder();
 
 	public abstract void setValue(IScope scope, Object value);
 
 	public abstract Object value(IScope scope) throws GamaRuntimeException;
 
+	@SuppressWarnings ("rawtypes")
 	public abstract IType getType();
 
 	public String serialize(boolean includingBuiltIn);
@@ -52,9 +41,12 @@ public interface IParameter {
 
 	public abstract Number getMaxValue(IScope scope);
 
+	@SuppressWarnings ("rawtypes")
 	public abstract List getAmongValue(IScope scope);
 
 	public abstract boolean isEditable();
+
+	public abstract boolean acceptsSlider(IScope scope);
 
 	public abstract Number getStepValue(IScope scope);
 

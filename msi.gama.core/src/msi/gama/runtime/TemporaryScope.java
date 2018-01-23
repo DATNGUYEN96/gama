@@ -1,7 +1,12 @@
-/**
- * Created by drogoul, 5 déc. 2015
+/*********************************************************************************************
  *
- */
+ * 'TemporaryScope.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.runtime;
 
 import java.util.HashMap;
@@ -21,7 +26,7 @@ import msi.gama.metamodel.agent.IAgent;
 import msi.gama.metamodel.topology.ITopology;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gama.util.IList;
-import msi.gaml.descriptions.IDescription;
+import msi.gaml.compilation.ISymbol;
 import msi.gaml.expressions.IExpression;
 import msi.gaml.statements.Arguments;
 import msi.gaml.statements.IExecutable;
@@ -36,15 +41,14 @@ import msi.gaml.types.Types;
  * @since 5 déc. 2015
  *
  */
-class TemporaryScope implements IScope {
+class TemporaryScope implements IScope, IExecutionContext {
 
-	Map<String, Object> vars = new HashMap();
+	Map<String, Object> vars = new HashMap<>();
 
 	/**
 	 *
 	 */
-	public TemporaryScope() {
-	}
+	public TemporaryScope() {}
 
 	/**
 	 * Method clear()
@@ -60,8 +64,7 @@ class TemporaryScope implements IScope {
 	/**
 	 * Method push()
 	 * 
-	 * @see msi.gama.runtime.IScope#push(msi.gama.metamodel.agent.IAgent) No
-	 *      agents
+	 * @see msi.gama.runtime.IScope#push(msi.gama.metamodel.agent.IAgent) No agents
 	 */
 	@Override
 	public boolean push(final IAgent agent) {
@@ -71,59 +74,50 @@ class TemporaryScope implements IScope {
 	/**
 	 * Method push()
 	 * 
-	 * @see msi.gama.runtime.IScope#push(msi.gaml.statements.IStatement) No
-	 *      statements
+	 * @see msi.gama.runtime.IScope#push(msi.gaml.statements.IStatement) No statements
 	 */
 	@Override
-	public void push(final IStatement statement) {
-	}
+	public void push(final ISymbol statement) {}
 
 	/**
 	 * Method pop()
 	 * 
-	 * @see msi.gama.runtime.IScope#pop(msi.gama.metamodel.agent.IAgent) No
-	 *      agents
+	 * @see msi.gama.runtime.IScope#pop(msi.gama.metamodel.agent.IAgent) No agents
 	 */
 	@Override
-	public void pop(final IAgent agent) {
-	}
+	public void pop(final IAgent agent) {}
 
 	/**
 	 * Method pop()
 	 * 
-	 * @see msi.gama.runtime.IScope#pop(msi.gaml.statements.IStatement) No
-	 *      statements
+	 * @see msi.gama.runtime.IScope#pop(msi.gaml.statements.IStatement) No statements
 	 */
 	@Override
-	public void pop(final IStatement statement) {
-	}
+	public void pop(final ISymbol statement) {}
 
 	/**
 	 * Method execute()
 	 * 
-	 * @see msi.gama.runtime.IScope#execute(msi.gaml.statements.IExecutable,
-	 *      msi.gama.metamodel.agent.IAgent, msi.gaml.statements.Arguments,
-	 *      java.lang.Object[]) Impossible to execute anything here
+	 * @see msi.gama.runtime.IScope#execute(msi.gaml.statements.IExecutable, msi.gama.metamodel.agent.IAgent,
+	 *      msi.gaml.statements.Arguments, java.lang.Object[]) Impossible to execute anything here
 	 */
 	@Override
-	public boolean execute(final IExecutable executable, final IAgent agent, final Arguments args,
-			final Object[] result) {
-		return false;
+	public ExecutionResult execute(final IExecutable executable, final IAgent agent, final Arguments args) {
+		return FAILED;
 	}
 
 	/**
 	 * Method evaluate()
 	 * 
-	 * @see msi.gama.runtime.IScope#evaluate(msi.gaml.expressions.IExpression,
-	 *      msi.gama.metamodel.agent.IAgent)
+	 * @see msi.gama.runtime.IScope#evaluate(msi.gaml.expressions.IExpression, msi.gama.metamodel.agent.IAgent)
 	 */
 	@Override
-	public Object evaluate(final IExpression expr, final IAgent agent) throws GamaRuntimeException {
+	public ExecutionResult evaluate(final IExpression expr, final IAgent agent) throws GamaRuntimeException {
 		try {
-			return expr.value(this);
+			return new ExecutionResultWithValue(expr.value(this));
 		} catch (final GamaRuntimeException g) {
 			GAMA.reportAndThrowIfNeeded(this, g, true);
-			return null;
+			return FAILED;
 		}
 
 	}
@@ -141,8 +135,7 @@ class TemporaryScope implements IScope {
 	/**
 	 * Method setVarValue()
 	 * 
-	 * @see msi.gama.runtime.IScope#setVarValue(java.lang.String,
-	 *      java.lang.Object)
+	 * @see msi.gama.runtime.IScope#setVarValue(java.lang.String, java.lang.Object)
 	 */
 	@Override
 	public void setVarValue(final String varName, final Object val) {
@@ -172,8 +165,7 @@ class TemporaryScope implements IScope {
 	/**
 	 * Method addVarWithValue()
 	 * 
-	 * @see msi.gama.runtime.IScope#addVarWithValue(java.lang.String,
-	 *      java.lang.Object)
+	 * @see msi.gama.runtime.IScope#addVarWithValue(java.lang.String, java.lang.Object)
 	 */
 	@Override
 	public void addVarWithValue(final String varName, final Object val) {
@@ -236,8 +228,8 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#getListArg(java.lang.String)
 	 */
 	@Override
-	public IList getListArg(final String string) throws GamaRuntimeException {
-		return (IList) getArg(string, IType.LIST);
+	public IList<?> getListArg(final String string) throws GamaRuntimeException {
+		return (IList<?>) getArg(string, IType.LIST);
 	}
 
 	/**
@@ -271,20 +263,9 @@ class TemporaryScope implements IScope {
 	}
 
 	/**
-	 * Method hasVar()
-	 * 
-	 * @see msi.gama.runtime.IScope#hasVar(java.lang.String)
-	 */
-	@Override
-	public boolean hasVar(final String string) {
-		return vars.containsKey(string);
-	}
-
-	/**
 	 * Method getAgentVarValue()
 	 * 
-	 * @see msi.gama.runtime.IScope#getAgentVarValue(msi.gama.metamodel.agent.IAgent,
-	 *      java.lang.String)
+	 * @see msi.gama.runtime.IScope#getAgentVarValue(msi.gama.metamodel.agent.IAgent, java.lang.String)
 	 */
 	@Override
 	public Object getAgentVarValue(final IAgent agent, final String name) throws GamaRuntimeException {
@@ -294,8 +275,8 @@ class TemporaryScope implements IScope {
 	/**
 	 * Method setAgentVarValue()
 	 * 
-	 * @see msi.gama.runtime.IScope#setAgentVarValue(msi.gama.metamodel.agent.IAgent,
-	 *      java.lang.String, java.lang.Object)
+	 * @see msi.gama.runtime.IScope#setAgentVarValue(msi.gama.metamodel.agent.IAgent, java.lang.String,
+	 *      java.lang.Object)
 	 */
 	@Override
 	public void setAgentVarValue(final IAgent agent, final String name, final Object v) throws GamaRuntimeException {
@@ -318,8 +299,7 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#setInterrupted(boolean) No interruption
 	 */
 	@Override
-	public void setInterrupted(final boolean interrupted) {
-	}
+	public void setInterrupted() {}
 
 	/**
 	 * Method getGlobalVarValue()
@@ -334,12 +314,10 @@ class TemporaryScope implements IScope {
 	/**
 	 * Method setGlobalVarValue()
 	 * 
-	 * @see msi.gama.runtime.IScope#setGlobalVarValue(java.lang.String,
-	 *      java.lang.Object)
+	 * @see msi.gama.runtime.IScope#setGlobalVarValue(java.lang.String, java.lang.Object)
 	 */
 	@Override
-	public void setGlobalVarValue(final String name, final Object v) throws GamaRuntimeException {
-	}
+	public void setGlobalVarValue(final String name, final Object v) throws GamaRuntimeException {}
 
 	/**
 	 * Method getName()
@@ -347,7 +325,7 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#getName()
 	 */
 	@Override
-	public Object getName() {
+	public String getName() {
 		return "Temporary scope";
 	}
 
@@ -364,8 +342,7 @@ class TemporaryScope implements IScope {
 	/**
 	 * Method setTopology()
 	 * 
-	 * @see msi.gama.runtime.IScope#setTopology(msi.gama.metamodel.topology.ITopology)
-	 *      No Topology to set
+	 * @see msi.gama.runtime.IScope#setTopology(msi.gama.metamodel.topology.ITopology) No Topology to set
 	 */
 	@Override
 	public ITopology setTopology(final ITopology topology) {
@@ -375,12 +352,10 @@ class TemporaryScope implements IScope {
 	/**
 	 * Method setGraphics()
 	 * 
-	 * @see msi.gama.runtime.IScope#setGraphics(msi.gama.common.interfaces.IGraphics)
-	 *      No Graphics to set
+	 * @see msi.gama.runtime.IScope#setGraphics(msi.gama.common.interfaces.IGraphics) No Graphics to set
 	 */
 	@Override
-	public void setGraphics(final IGraphics val) {
-	}
+	public void setGraphics(final IGraphics val) {}
 
 	/**
 	 * Method getGraphics()
@@ -395,20 +370,20 @@ class TemporaryScope implements IScope {
 	/**
 	 * Method getAgentScope()
 	 * 
-	 * @see msi.gama.runtime.IScope#getAgentScope() No agent there
+	 * @see msi.gama.runtime.IScope#getAgent() No agent there
 	 */
 	@Override
-	public IAgent getAgentScope() {
+	public IAgent getAgent() {
 		return null;
 	}
 
 	/**
 	 * Method getSimulationScope()
 	 * 
-	 * @see msi.gama.runtime.IScope#getSimulationScope() No simulation here
+	 * @see msi.gama.runtime.IScope#getSimulation() No simulation here
 	 */
 	@Override
-	public SimulationAgent getSimulationScope() {
+	public SimulationAgent getSimulation() {
 		return null;
 	}
 
@@ -422,24 +397,9 @@ class TemporaryScope implements IScope {
 		return null;
 	}
 
-	/**
-	 * Method getExperimentContext()
-	 * 
-	 * @see msi.gama.runtime.IScope#getExperimentContext() No Experiment
-	 */
 	@Override
-	public IDescription getExperimentContext() {
-		return null;
-	}
-
-	/**
-	 * Method getModelContext()
-	 * 
-	 * @see msi.gama.runtime.IScope#getModelContext() No Model
-	 */
-	@Override
-	public IDescription getModelContext() {
-		return null;
+	public IType getType(final String name) {
+		return Types.get(name);
 	}
 
 	/**
@@ -478,8 +438,7 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#popLoop() Nothing to do here
 	 */
 	@Override
-	public void popLoop() {
-	}
+	public void popLoop() {}
 
 	/**
 	 * Method popAction()
@@ -487,8 +446,7 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#popAction() Nothing to do here
 	 */
 	@Override
-	public void popAction() {
-	}
+	public void popAction() {}
 
 	/**
 	 * Method interruptAction()
@@ -496,8 +454,7 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#interruptAction() Nothing to do here
 	 */
 	@Override
-	public void interruptAction() {
-	}
+	public void interruptAction() {}
 
 	/**
 	 * Method interruptAgent()
@@ -505,8 +462,7 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#interruptAgent() Nothing to do here
 	 */
 	@Override
-	public void interruptAgent() {
-	}
+	public void interruptAgent() {}
 
 	/**
 	 * Method interruptLoop()
@@ -514,29 +470,26 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#interruptLoop() Nothing to do here
 	 */
 	@Override
-	public void interruptLoop() {
-	}
+	public void interruptLoop() {}
 
 	/**
 	 * Method init()
 	 * 
-	 * @see msi.gama.runtime.IScope#init(msi.gama.common.interfaces.IStepable)
-	 *      Nothing to do here
+	 * @see msi.gama.runtime.IScope#init(msi.gama.common.interfaces.IStepable) Nothing to do here
 	 */
 	@Override
-	public boolean init(final IStepable agent) {
-		return false;
+	public ExecutionResult init(final IStepable agent) {
+		return FAILED;
 	}
 
 	/**
 	 * Method step()
 	 * 
-	 * @see msi.gama.runtime.IScope#step(msi.gama.common.interfaces.IStepable)
-	 *      Nothing to do here
+	 * @see msi.gama.runtime.IScope#step(msi.gama.common.interfaces.IStepable) Nothing to do here
 	 */
 	@Override
-	public boolean step(final IStepable agent) {
-		return false;
+	public ExecutionResult step(final IStepable agent) {
+		return FAILED;
 	}
 
 	/**
@@ -545,18 +498,14 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#stackArguments(msi.gaml.statements.Arguments)
 	 */
 	@Override
-	public void stackArguments(final Arguments actualArgs) {
-	}
+	public void stackArguments(final Arguments actualArgs) {}
 
 	/**
-	 * Method update()
-	 * 
-	 * @see msi.gama.runtime.IScope#update(msi.gama.metamodel.agent.IAgent)
-	 *      Nothing to do here
+	 * Method update() Nothing to do here
 	 */
 	@Override
-	public boolean update(final IAgent agent) {
-		return false;
+	public ExecutionResult update(final IAgent agent) {
+		return FAILED;
 	}
 
 	/**
@@ -565,7 +514,7 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#getStatement()
 	 */
 	@Override
-	public IStatement getStatement() {
+	public IStatement getCurrentSymbol() {
 		return null;
 	}
 
@@ -575,18 +524,15 @@ class TemporaryScope implements IScope {
 	 * @see msi.gama.runtime.IScope#setTrace(boolean) Nothing to do here
 	 */
 	@Override
-	public void setTrace(final boolean trace) {
-	}
+	public void setTrace(final boolean trace) {}
 
 	/**
 	 * Method setStatement()
 	 * 
-	 * @see msi.gama.runtime.IScope#setStatement(msi.gaml.statements.IStatement)
-	 *      Nothing to do here
+	 * @see msi.gama.runtime.IScope#setStatement(msi.gaml.statements.IStatement) Nothing to do here
 	 */
 	@Override
-	public void setStatement(final IStatement abstractStatement) {
-	}
+	public void setCurrentSymbol(final ISymbol abstractStatement) {}
 
 	RandomUtils random = null;
 
@@ -697,20 +643,110 @@ class TemporaryScope implements IScope {
 
 	@Override
 	public void setOnUserHold(final boolean b) {
-		// TODO Auto-generated method stub
 
 	}
 
 	@Override
 	public boolean isOnUserHold() {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	public boolean isPaused() {
-		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	public IExecutionContext getExecutionContext() {
+		return this;
+	}
+
+	@Override
+	public IScope getScope() {
+		return this;
+	}
+
+	@Override
+	public void setTempVar(final String name, final Object value) {
+		vars.put(name, value);
+
+	}
+
+	@Override
+	public Object getTempVar(final String name) {
+		return vars.get(name);
+	}
+
+	@Override
+	public Map<? extends String, ? extends Object> getLocalVars() {
+		return vars;
+	}
+
+	@Override
+	public void clearLocalVars() {
+		vars.clear();
+
+	}
+
+	@Override
+	public void putLocalVar(final String varName, final Object val) {
+		vars.put(varName, val);
+
+	}
+
+	@Override
+	public Object getLocalVar(final String string) {
+		return vars.get(string);
+	}
+
+	@Override
+	public boolean hasLocalVar(final String name) {
+		return vars.containsKey(name);
+	}
+
+	@Override
+	public void removeLocalVar(final String name) {
+		vars.remove(name);
+
+	}
+
+	@Override
+	public IExecutionContext getOuterContext() {
+		return null;
+	}
+
+	@Override
+	public IExecutionContext createCopyContext() {
+		return this;
+	}
+
+	@Override
+	public IExecutionContext createChildContext() {
+		return this;
+	}
+
+	@Override
+	public boolean isInTryMode() {
+		return false;
+	}
+
+	@Override
+	public void enableTryMode() {}
+
+	@Override
+	public void disableTryMode() {}
+
+	@Override
+	public void setCurrentError(final GamaRuntimeException g) {}
+
+	@Override
+	public GamaRuntimeException getCurrentError() {
+		return null;
+	}
+
+	@Override
+	public boolean hasAccessToGlobalVar(final String name) {
+		return vars.containsKey(name);
 	}
 
 }

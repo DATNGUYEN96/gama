@@ -1,20 +1,19 @@
 /*********************************************************************************************
  *
- *
- * 'IExperimentCreator.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'IExperimentAgentCreator.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.common.interfaces;
 
 import msi.gama.kernel.experiment.IExperimentAgent;
+import msi.gama.metamodel.agent.IAgent;
 import msi.gama.metamodel.population.IPopulation;
 import msi.gama.precompiler.GamlProperties;
-import msi.gaml.descriptions.IGamlDescription;
 
 public interface IExperimentAgentCreator {
 
@@ -23,7 +22,8 @@ public interface IExperimentAgentCreator {
 		private final IExperimentAgentCreator original;
 		private final String name, plugin;
 
-		public ExperimentAgentDescription(final IExperimentAgentCreator original, final String name, final String plugin) {
+		public ExperimentAgentDescription(final IExperimentAgentCreator original, final String name,
+				final String plugin) {
 			this.original = original;
 			this.name = name;
 			this.plugin = plugin;
@@ -31,15 +31,17 @@ public interface IExperimentAgentCreator {
 
 		/**
 		 * Method create()
+		 * 
 		 * @see msi.gama.common.interfaces.IExperimentAgentCreator#create(java.lang.Object[])
 		 */
 		@Override
-		public IExperimentAgent create(final IPopulation pop) {
+		public IExperimentAgent create(final IPopulation<? extends IAgent> pop) {
 			return original.create(pop);
 		}
 
 		/**
 		 * Method getName()
+		 * 
 		 * @see msi.gama.common.interfaces.INamed#getName()
 		 */
 		@Override
@@ -49,13 +51,16 @@ public interface IExperimentAgentCreator {
 
 		/**
 		 * Method setName()
+		 * 
 		 * @see msi.gama.common.interfaces.INamed#setName(java.lang.String)
 		 */
 		@Override
-		public void setName(final String newName) {}
+		public void setName(final String newName) {
+		}
 
 		/**
 		 * Method serialize()
+		 * 
 		 * @see msi.gama.common.interfaces.IGamlable#serialize(boolean)
 		 */
 		@Override
@@ -65,7 +70,8 @@ public interface IExperimentAgentCreator {
 
 		/**
 		 * Method getTitle()
-		 * @see msi.gaml.descriptions.IGamlDescription#getTitle()
+		 * 
+		 * @see msi.gama.common.interfaces.IGamlDescription#getTitle()
 		 */
 		@Override
 		public String getTitle() {
@@ -74,7 +80,8 @@ public interface IExperimentAgentCreator {
 
 		/**
 		 * Method getDocumentation()
-		 * @see msi.gaml.descriptions.IGamlDescription#getDocumentation()
+		 * 
+		 * @see msi.gama.common.interfaces.IGamlDescription#getDocumentation()
 		 */
 		@Override
 		public String getDocumentation() {
@@ -83,7 +90,8 @@ public interface IExperimentAgentCreator {
 
 		/**
 		 * Method getDefiningPlugin()
-		 * @see msi.gaml.descriptions.IGamlDescription#getDefiningPlugin()
+		 * 
+		 * @see msi.gama.common.interfaces.IGamlDescription#getDefiningPlugin()
 		 */
 		@Override
 		public String getDefiningPlugin() {
@@ -92,7 +100,8 @@ public interface IExperimentAgentCreator {
 
 		/**
 		 * Method collectPlugins()
-		 * @see msi.gaml.descriptions.IGamlDescription#collectPlugins(java.util.Set)
+		 * 
+		 * @see msi.gama.common.interfaces.IGamlDescription#collectPlugins(java.util.Set)
 		 */
 		@Override
 		public void collectMetaInformation(final GamlProperties meta) {
@@ -100,6 +109,6 @@ public interface IExperimentAgentCreator {
 		}
 	}
 
-	IExperimentAgent create(IPopulation pop);
+	IExperimentAgent create(IPopulation<? extends IAgent> pop);
 
 }

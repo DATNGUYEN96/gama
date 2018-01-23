@@ -1,12 +1,11 @@
 /*********************************************************************************************
  *
- *
- * 'IContainerType.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'IContainerType.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.types;
@@ -22,26 +21,26 @@ import msi.gaml.expressions.IExpression;
  * @since 28 janv. 2014
  *
  */
-public interface IContainerType<T extends IContainer> extends IType<T> {
+public interface IContainerType<T extends IContainer<?, ?>> extends IType<T> {
 
 	@Override
-	public IContainerType getType();
+	public IContainerType<T> getType();
 
 	@Override
-	public IContainerType typeIfCasting(final IExpression exp);
+	public IContainerType<?> typeIfCasting(final IExpression exp);
 
 	@Override
 	public T cast(IScope scope, Object obj, Object param, boolean copy);
 
 	@Override
-	public T cast(IScope scope, Object obj, Object param, IType keyType, IType contentType, boolean copy);
+	public T cast(IScope scope, Object obj, Object param, IType<?> keyType, IType<?> contentType, boolean copy);
 
 	/**
 	 * Allows to build a parametric type
+	 * 
 	 * @param subs
 	 * @return
 	 */
-	public IContainerType of(IType ... subs);
-
+	public IContainerType<?> of(IType<?>... subs);
 
 }

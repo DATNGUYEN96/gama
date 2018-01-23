@@ -1,10 +1,17 @@
+/*********************************************************************************************
+ *
+ * 'Converters.java, in plugin ummisco.gama.serialize, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package ummisco.gama.serializer.factory;
 
-import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.io.xml.DomDriver;
 
-import msi.gama.runtime.IScope;
 import ummisco.gama.serializer.gamaType.converters.ConverterScope;
 import ummisco.gama.serializer.gamaType.converters.GamaAgentConverter;
 import ummisco.gama.serializer.gamaType.converters.GamaAgentConverterNetwork;
@@ -15,10 +22,7 @@ import ummisco.gama.serializer.gamaType.converters.GamaListConverter;
 import ummisco.gama.serializer.gamaType.converters.GamaMapConverter;
 import ummisco.gama.serializer.gamaType.converters.GamaMatrixConverter;
 import ummisco.gama.serializer.gamaType.converters.GamaPairConverter;
-import ummisco.gama.serializer.gamaType.converters.GamaPointConverter;
 import ummisco.gama.serializer.gamaType.converters.GamaPopulationConverter;
-import ummisco.gama.serializer.gamaType.converters.GamaScopeConverter;
-import ummisco.gama.serializer.gamaType.converters.GamaSimulationAgentConverter;
 import ummisco.gama.serializer.gamaType.converters.GamaSpeciesConverter;
 import ummisco.gama.serializer.gamaType.converters.LogConverter;
 import ummisco.gama.serializer.gamaType.converters.SavedAgentConverter;
@@ -29,7 +33,7 @@ public abstract class Converters {
 	{
 		Converter[] converters= new Converter[12];
 		converters[0]= new GamaBasicTypeConverter(cs);
-		converters[1]=new GamaAgentConverter(cs);
+		converters[1]=new GamaAgentConverter(cs);		
 		converters[2]=new GamaListConverter(cs);
 		converters[3]=new GamaMapConverter(cs);
 		converters[4]=new GamaPairConverter();

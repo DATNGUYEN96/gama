@@ -1,13 +1,11 @@
 /*********************************************************************************************
+ *
+ * 'GamaTopologyType.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * 
- * 'GamaTopologyType.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gaml.types;
 
@@ -22,6 +20,7 @@ import msi.gama.metamodel.topology.graph.GamaSpatialGraph;
 import msi.gama.metamodel.topology.graph.ISpatialGraph;
 import msi.gama.metamodel.topology.grid.GridTopology;
 import msi.gama.metamodel.topology.grid.IGrid;
+import msi.gama.precompiler.GamlAnnotations.doc;
 import msi.gama.precompiler.GamlAnnotations.type;
 import msi.gama.precompiler.IConcept;
 import msi.gama.precompiler.ISymbolKind;
@@ -38,42 +37,35 @@ import msi.gaml.species.ISpecies;
  * @since 26 nov. 2011
  * 
  */
-@type(name = IKeyword.TOPOLOGY, id = IType.TOPOLOGY, wraps = {
-		ITopology.class }, kind = ISymbolKind.Variable.REGULAR, concept = { IConcept.TYPE, IConcept.TOPOLOGY })
+@SuppressWarnings ("unchecked")
+@type (
+		name = IKeyword.TOPOLOGY,
+		id = IType.TOPOLOGY,
+		wraps = { ITopology.class },
+		kind = ISymbolKind.Variable.REGULAR,
+		concept = { IConcept.TYPE, IConcept.TOPOLOGY },
+		doc = @doc ("Represents a topology, obtained from agents or geometries, that can be used to compute distances, neighbours, etc."))
 public class GamaTopologyType extends GamaType<ITopology> {
 
+	@SuppressWarnings ("rawtypes")
 	public static ITopology staticCast(final IScope scope, final Object obj, final boolean copy)
 			throws GamaRuntimeException {
 		// Many cases.
-		if (obj == null) {
-			return null;
-		}
-		if (obj instanceof ISpatialGraph) {
-			return ((ISpatialGraph) obj).getTopology(scope);
-		}
-		if (obj instanceof ITopology) {
-			return (ITopology) obj;
-		}
+		if (obj == null) { return null; }
+		if (obj instanceof ISpatialGraph) { return ((ISpatialGraph) obj).getTopology(scope); }
+		if (obj instanceof ITopology) { return (ITopology) obj; }
 		if (obj instanceof IAgent)
 			return ((IAgent) obj).getTopology();
-		if (obj instanceof IPopulation) {
-			return ((IPopulation) obj).getTopology();
-		}
-		if (obj instanceof ISpecies) {
-			return staticCast(scope, scope.getAgentScope().getPopulationFor((ISpecies) obj), copy);
-		}
-		if (obj instanceof IShape) {
-			return from(scope, (IShape) obj);
-		}
-		if (obj instanceof IContainer) {
-			return from(scope, (IContainer) obj);
-		}
+		if (obj instanceof IPopulation) { return ((IPopulation) obj).getTopology(); }
+		if (obj instanceof ISpecies) { return staticCast(scope, scope.getAgent().getPopulationFor((ISpecies) obj),
+				copy); }
+		if (obj instanceof IShape) { return from(scope, (IShape) obj); }
+		if (obj instanceof IContainer) { return from(scope, (IContainer) obj); }
 		return staticCast(scope, Cast.asGeometry(scope, obj, copy), copy);
 	}
 
 	/**
-	 * @see msi.gama.internal.types.GamaType#cast(msi.gama.interfaces.IScope,
-	 *      java.lang.Object, java.lang.Object)
+	 * @see msi.gama.internal.types.GamaType#cast(msi.gama.interfaces.IScope, java.lang.Object, java.lang.Object)
 	 */
 	@Override
 	public ITopology cast(final IScope scope, final Object obj, final Object param, final boolean copy)
@@ -91,7 +83,7 @@ public class GamaTopologyType extends GamaType<ITopology> {
 	 * @param obj
 	 * @return
 	 */
-	private static ITopology from(final IScope scope, final IContainer obj) throws GamaRuntimeException {
+	private static ITopology from(final IScope scope, final IContainer<?, IShape> obj) throws GamaRuntimeException {
 		if (obj instanceof GamaSpatialGraph) {
 			return ((GamaSpatialGraph) obj).getTopology(scope);
 		} else if (obj instanceof IGrid) {
@@ -110,7 +102,7 @@ public class GamaTopologyType extends GamaType<ITopology> {
 	}
 
 	@Override
-	public IType getContentType() {
+	public IType<?> getContentType() {
 		return Types.GEOMETRY;
 	}
 

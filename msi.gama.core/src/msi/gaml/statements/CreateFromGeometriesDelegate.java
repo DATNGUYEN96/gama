@@ -1,17 +1,27 @@
-/**
- * Created by drogoul, 27 mai 2015
+/*********************************************************************************************
  *
- */
+ * 'CreateFromGeometriesDelegate.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and
+ * simulation platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gaml.statements;
 
-import java.util.*;
-import msi.gama.common.interfaces.*;
+import java.util.List;
+import java.util.Map;
+
+import msi.gama.common.interfaces.ICreateDelegate;
+import msi.gama.common.interfaces.IKeyword;
 import msi.gama.metamodel.shape.GamaShape;
 import msi.gama.runtime.IScope;
-import msi.gama.util.*;
+import msi.gama.util.IAddressableContainer;
+import msi.gama.util.IList;
 import msi.gama.util.file.GamaGeometryFile;
 import msi.gaml.operators.fastmaths.CmnFastMath;
-import msi.gaml.types.*;
+import msi.gaml.types.IType;
+import msi.gaml.types.Types;
 
 /**
  * Class CreateFromDatabaseDelegate.
@@ -20,42 +30,41 @@ import msi.gaml.types.*;
  * @since 27 mai 2015
  *
  */
+@SuppressWarnings ({ "unchecked", "rawtypes" })
 public class CreateFromGeometriesDelegate implements ICreateDelegate {
 
 	/**
 	 * Method acceptSource()
 	 *
-	 * @see msi.gama.common.interfaces.ICreateDelegate#acceptSource(java.lang.Object)
+	 * @see msi.gama.common.interfaces.ICreateDelegate#acceptSource(IScope, java.lang.Object)
 	 */
 	@Override
-	public boolean acceptSource(final Object source) {
-		// THIS CONDITION MUST BE CHECKED : bypass a condition that belong to the case createFromDatabase
-		if( source instanceof IList && ((IList) source).get(0) instanceof IList){
-			return false;
-		}
+	public boolean acceptSource(final IScope scope, final Object source) {
+		// THIS CONDITION MUST BE CHECKED : bypass a condition that belong to
+		// the case createFromDatabase
+		if (source instanceof IList && ((IList) source).get(0) instanceof IList) { return false; }
 		return source instanceof IList && ((IList) source).getType().getContentType().isAssignableFrom(Types.GEOMETRY)
 
-			|| source instanceof GamaGeometryFile;
+				|| source instanceof GamaGeometryFile;
 
-		// ||
-		// source instanceof GamaShapeFile || source instanceof GamaOsmFile || source instanceof GamaSVGFile || source instanceof GamaDXFFile );
 	}
 
 	/**
-	 * Method createFrom() Method used to read initial values and attributes
-	 * from a CSV values describing a synthetic population
+	 * Method createFrom() Method used to read initial values and attributes from a CSV values describing a synthetic
+	 * population
 	 *
 	 * @author Alexis Drogoul
 	 * @since 04-09-2012
-	 * @see msi.gama.common.interfaces.ICreateDelegate#createFrom(msi.gama.runtime.IScope, java.util.List, int, java.lang.Object)
+	 * @see msi.gama.common.interfaces.ICreateDelegate#createFrom(msi.gama.runtime.IScope, java.util.List, int,
+	 *      java.lang.Object)
 	 */
 	@Override
-	public boolean createFrom(final IScope scope, final List<Map> inits, final Integer max, final Object input,
-		final Arguments init, final CreateStatement statement) {
-		IAddressableContainer<Integer, GamaShape, Integer, GamaShape> container =
-			(IAddressableContainer<Integer, GamaShape, Integer, GamaShape>) input;
+	public boolean createFrom(final IScope scope, final List<Map<String, Object>> inits, final Integer max,
+			final Object input, final Arguments init, final CreateStatement statement) {
+		final IAddressableContainer<Integer, GamaShape, Integer, GamaShape> container =
+				(IAddressableContainer<Integer, GamaShape, Integer, GamaShape>) input;
 		final int num = max == null ? container.length(scope) : CmnFastMath.min(container.length(scope), max);
-		for ( int i = 0; i < num; i++ ) {
+		for (int i = 0; i < num; i++) {
 			final GamaShape g = container.get(scope, i);
 			final Map map = g.getOrCreateAttributes();
 			// The shape is added to the initial values
@@ -69,6 +78,7 @@ public class CreateFromGeometriesDelegate implements ICreateDelegate {
 
 	/**
 	 * Method fromFacetType()
+	 * 
 	 * @see msi.gama.common.interfaces.ICreateDelegate#fromFacetType()
 	 */
 	@Override

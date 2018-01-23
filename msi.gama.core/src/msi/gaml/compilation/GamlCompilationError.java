@@ -1,20 +1,21 @@
 /*********************************************************************************************
  *
- *
- * 'GamlCompilationError.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'GamlCompilationError.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.compilation;
 
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 
 /**
- * The Class GamlCompilationError. Represents the errors produced by the validation/compilation of IDescription's.
+ * The Class GamlCompilationError. Represents the errors produced by the
+ * validation/compilation of IDescription's.
  */
 public class GamlCompilationError {
 
@@ -24,9 +25,10 @@ public class GamlCompilationError {
 	protected String code;
 	protected String[] data;
 	protected EObject source;
+	protected final URI uri;
 
 	public GamlCompilationError(final String string, final String code, final EObject object, final boolean warning,
-		final boolean info, final String ... data) {
+			final boolean info, final String... data) {
 
 		message = string;
 		isWarning = warning;
@@ -34,10 +36,27 @@ public class GamlCompilationError {
 		this.code = code;
 		this.data = data;
 		source = object;
+		uri = object.eResource().getURI();
+	}
+
+	public GamlCompilationError(final String string, final String code, final URI uri, final boolean warning,
+			final boolean info, final String... data) {
+
+		message = string;
+		isWarning = warning;
+		isInfo = info;
+		this.code = code;
+		this.data = data;
+		source = null;
+		this.uri = uri;
 	}
 
 	public String[] getData() {
 		return data;
+	}
+
+	public URI getURI() {
+		return uri;
 	}
 
 	public String getCode() {
@@ -67,9 +86,13 @@ public class GamlCompilationError {
 
 	@Override
 	public boolean equals(final Object other) {
-		if ( this == other ) { return true; }
-		if ( !(other instanceof GamlCompilationError) ) { return false; }
-		GamlCompilationError error = (GamlCompilationError) other;
+		if (this == other) {
+			return true;
+		}
+		if (!(other instanceof GamlCompilationError)) {
+			return false;
+		}
+		final GamlCompilationError error = (GamlCompilationError) other;
 		return message.equals(error.message) && source == error.source;
 	}
 

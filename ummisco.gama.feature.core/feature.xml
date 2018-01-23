@@ -25,13 +25,6 @@
          id="msi.gama.core"
          download-size="0"
          install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="msi.gama.ext"
-         download-size="0"
-         install-size="0"
          version="0.0.0"/>
 
    <plugin
@@ -49,7 +42,21 @@
          unpack="false"/>
 
    <plugin
+         id="ummisco.gama.annotations"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
          id="msi.gama.processor"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="ummisco.gaml.extensions.stats"
          download-size="0"
          install-size="0"
          version="0.0.0"

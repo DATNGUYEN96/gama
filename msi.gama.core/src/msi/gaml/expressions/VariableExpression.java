@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'VariableExpression.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'VariableExpression.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.expressions;
@@ -19,22 +17,30 @@ import msi.gaml.types.IType;
 
 public abstract class VariableExpression extends AbstractExpression implements IVarExpression {
 
+	protected final String name;
 	protected final boolean isNotModifiable;
 	private final IDescription definitionDescription;
 
-	protected VariableExpression(final String n, final IType type, final boolean notModifiable,
-		final IDescription definitionDescription) {
-		setName(n);
+	protected VariableExpression(final String n, final IType<?> type, final boolean notModifiable,
+			final IDescription definitionDescription) {
+		name = n;
 		setType(type);
 		isNotModifiable = notModifiable;
 		this.definitionDescription = definitionDescription;
 	}
-	
+
+	@Override
 	public IExpression getOwner() {
 		return null;
 	}
-	
-	public VariableExpression getVar(){
+
+	@Override
+	public String getName() {
+		return name;
+	}
+
+	@Override
+	public VariableExpression getVar() {
 		return this;
 	}
 
@@ -65,14 +71,15 @@ public abstract class VariableExpression extends AbstractExpression implements I
 		return definitionDescription;
 	}
 
-	protected void setType(final IType type) {
+	protected void setType(final IType<?> type) {
 		this.type = type;
 	}
 
 	@Override
 	public String getTitle() {
-		return isNotModifiable ? "constant" : "variable " + getName() + " of type " + getType() + " defined in " +
-			getDefinitionDescription().getTitle();
+
+		return isNotModifiable ? "constant" : "variable " + getName() + " of type " + getType()
+				+ (definitionDescription != null ? " defined in " + getDefinitionDescription().getTitle() : "");
 	}
 
 	@Override
@@ -82,13 +89,14 @@ public abstract class VariableExpression extends AbstractExpression implements I
 
 	/**
 	 * Method collectPlugins()
-	 * @see msi.gaml.descriptions.IGamlDescription#collectPlugins(java.util.Set)
+	 * 
+	 * @see msi.gama.common.interfaces.IGamlDescription#collectPlugins(java.util.Set)
 	 */
 	@Override
 	public void collectMetaInformation(final GamlProperties meta) {
-		if ( definitionDescription != null ) {
-			IDescription var = definitionDescription.getSpeciesContext().getVariable(getName());
-			if ( var != null ) {
+		if (definitionDescription != null) {
+			final IDescription var = definitionDescription.getSpeciesContext().getAttribute(getName());
+			if (var != null) {
 				meta.put(GamlProperties.PLUGINS, var.getDefiningPlugin());
 			}
 		}

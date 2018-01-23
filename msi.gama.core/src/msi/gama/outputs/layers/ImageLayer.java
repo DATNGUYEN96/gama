@@ -1,24 +1,23 @@
 /*********************************************************************************************
  *
+ * 'ImageLayer.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'ImageLayer.java', in plugin 'msi.gama.application', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs.layers;
 
-import com.vividsolutions.jts.geom.Envelope;
-
+import msi.gama.common.geometry.Envelope3D;
+import msi.gama.common.geometry.Scaling3D;
 import msi.gama.common.interfaces.IGraphics;
 import msi.gama.metamodel.shape.GamaPoint;
 import msi.gama.runtime.IScope;
 import msi.gama.util.file.GamaGridFile;
 import msi.gama.util.file.GamaImageFile;
 import msi.gaml.statements.draw.FileDrawingAttributes;
+import msi.gaml.types.GamaFileType;
 
 /**
  * Written by drogoul Modified on 9 nov. 2009
@@ -31,43 +30,42 @@ public class ImageLayer extends AbstractLayer {
 	GamaImageFile file = null;
 	GamaGridFile grid = null;
 	private String imageFileName = "";
-	Envelope env = null;
+	Envelope3D env;
 
 	public ImageLayer(final IScope scope, final ILayerStatement layer) {
 		super(layer);
 		buildImage(scope);
 	}
 
-	protected void buildImage(final IScope scope) {
+	protected Envelope3D buildImage(final IScope scope) {
 		final String newImage = ((ImageLayerStatement) definition).getImageFileName();
-		if (imageFileName != null && imageFileName.equals(newImage)) {
-			return;
-		}
+		if (imageFileName != null && imageFileName.equals(newImage)) { return env; }
 		imageFileName = newImage;
 		if (imageFileName == null || imageFileName.length() == 0) {
 			file = null;
 			grid = null;
 		} else {
-			file = new GamaImageFile(scope, imageFileName);
-			env = file.getGeoDataFile() == null ? null : file.computeEnvelope(scope);
-			if (!file.isGeoreferenced()) {
-				env = null;
+			@SuppressWarnings ("rawtypes") final GamaImageFile f =
+					GamaFileType.createImageFile(scope, imageFileName, null);
+			if (f != null) {
+				file = f;
+				env = file.getGeoDataFile(scope) == null ? scope.getSimulation().getEnvelope()
+						: file.computeEnvelope(scope);
 			}
 		}
+		return env;
 	}
 
 	@Override
 	public void privateDrawDisplay(final IScope scope, final IGraphics dg) {
-		if (dg.cannotDraw())
-			return;
 		buildImage(scope);
-		if (file == null) {
-			return;
-		}
-		final GamaPoint loc = env == null ? new GamaPoint(0, 0) : new GamaPoint(env.getMinX(), env.getMinY());
-		final FileDrawingAttributes attributes = new FileDrawingAttributes(loc);
+		if (file == null) { return; }
+		final FileDrawingAttributes attributes = new FileDrawingAttributes(null, true);
+		attributes.setUseCache(!definition.getRefresh());
 		if (env != null) {
-			attributes.size = new GamaPoint(env.getWidth(), env.getHeight());
+			final GamaPoint loc = new GamaPoint(env.getMinX(), env.getMinY());
+			attributes.setLocation(loc);
+			attributes.setSize(Scaling3D.of(env.getWidth(), env.getHeight(), 0));
 		}
 		dg.drawFile(file, attributes);
 	}

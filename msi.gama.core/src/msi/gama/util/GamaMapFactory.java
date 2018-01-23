@@ -1,10 +1,18 @@
-/**
- * Created by drogoul, 1 févr. 2015
+/*********************************************************************************************
+ *
+ * 'GamaMapFactory.java, in plugin msi.gama.core, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- */
+ *
+ **********************************************************************************************/
 package msi.gama.util;
 
+import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import msi.gama.runtime.IScope;
 import msi.gaml.types.IType;
@@ -17,9 +25,25 @@ import msi.gaml.types.Types;
  * @since 1 févr. 2015
  * 
  */
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class GamaMapFactory {
 
 	private static final int DEFAULT_SIZE = 10;
+
+	public static class GamaMapSupplier implements Supplier<GamaMap> {
+		IType k;
+		IType c;
+
+		public GamaMapSupplier(final IType key, final IType contents) {
+			k = key;
+			c = contents;
+		}
+
+		@Override
+		public GamaMap get() {
+			return create(k, c);
+		}
+	}
 
 	public static GamaMap create() {
 		return create(Types.NO_TYPE, Types.NO_TYPE);
@@ -50,6 +74,15 @@ public class GamaMapFactory {
 		final GamaMap<K, V> result = create(key, contents, map.size());
 		for (final Map.Entry<K, V> entry : map.entrySet()) {
 			result.setValueAtIndex(scope, entry.getKey(), entry.getValue());
+		}
+		return result;
+	}
+	
+	public static <K, V> GamaMap<K, V> create(final IScope scope, final IType key, final IType contents,
+			final IList<K> keys, final IList<V> values) {
+		final GamaMap<K, V> result = create(key, contents, keys.length(scope));
+		for (int i=0 ; i<Math.min(keys.length(scope),values.length(scope)); i++) {
+			result.put(keys.get(i), values.get(i));
 		}
 		return result;
 	}

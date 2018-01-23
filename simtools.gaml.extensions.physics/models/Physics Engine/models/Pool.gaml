@@ -177,7 +177,7 @@ global {
 	//Reflex to compute the forces at each step
 	reflex computeForces {
 		ask world2 {
-			do compute_forces step: 1;
+			do compute_forces step: 1.0;
 		}
 
 	}
@@ -219,7 +219,7 @@ species ball skills: [physics] {
 
 experiment pool type: gui {
 	output {
-		display Circle type: opengl tesselation: true background: #white draw_env: false { species ground aspect: default;
+		display Circle type: opengl  background: #white draw_env: false synchronized: true { species ground aspect: default;
 		species wall aspect: default;
 		species ball aspect: sphere;
 		}

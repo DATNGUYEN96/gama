@@ -1,24 +1,27 @@
 /*********************************************************************************************
- * 
- * 
- * 'GamlResourceDescriptionStrategy.java', in plugin 'msi.gama.lang.gaml', is part of the source code of the
+ *
+ * 'GamlResourceDescriptionStrategy.java, in plugin msi.gama.lang.gaml, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gama.lang.gaml.resource;
 
-import static msi.gama.common.interfaces.IKeyword.*;
-import java.util.*;
-import msi.gama.lang.gaml.gaml.*;
-import msi.gama.lang.utils.EGaml;
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.resource.IEObjectDescription;
+import org.eclipse.xtext.resource.IReferenceDescription;
 import org.eclipse.xtext.resource.impl.DefaultResourceDescriptionStrategy;
 import org.eclipse.xtext.util.IAcceptor;
+
+import msi.gama.lang.gaml.gaml.ActionArguments;
+import msi.gama.lang.gaml.gaml.ArgumentDefinition;
+import msi.gama.lang.gaml.gaml.Block;
+import msi.gama.lang.gaml.gaml.Model;
+import msi.gama.lang.gaml.gaml.Statement;
 
 /**
  * The class GamlResourceDescriptionManager.
@@ -30,32 +33,44 @@ import org.eclipse.xtext.util.IAcceptor;
 public class GamlResourceDescriptionStrategy extends DefaultResourceDescriptionStrategy {
 
 	/**
-	 * @see org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy#createEObjectDescriptions(org.eclipse.emf.ecore.EObject, org.eclipse.xtext.util.IAcceptor)
+	 * @see org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy#createEObjectDescriptions(org.eclipse.emf.ecore.EObject,
+	 *      org.eclipse.xtext.util.IAcceptor)
 	 */
-
-	static Set<String> composed = new HashSet(Arrays.asList(GLOBAL, SPECIES, ENTITIES, ENVIRONMENT, ACTION));
 
 	@Override
 	public boolean createEObjectDescriptions(final EObject o, final IAcceptor<IEObjectDescription> acceptor) {
-		if ( o instanceof ActionArguments ) {
+		if (o instanceof ActionArguments) {
 			return true;
-		} else if ( o instanceof ArgumentDefinition ) {
+		} else if (o instanceof ArgumentDefinition) {
 			super.createEObjectDescriptions(o, acceptor);
-		} else if ( o instanceof Statement ) {
-
-			Statement stm = (Statement) o;
-			String n = EGaml.getNameOf(stm);
-			if ( n != null ) {
-				try {
-					super.createEObjectDescriptions(stm, acceptor);
-				} catch (IllegalArgumentException e) {
-					// e.printStackTrace();
-					return false;
-				}
+		} else if (o instanceof Statement) {
+			try {
+				super.createEObjectDescriptions(o, acceptor);
+			} catch (final IllegalArgumentException e) {
+				return false;
 			}
-
-			return ((Statement) o).getBlock() != null; // composed.contains(EGaml.getKey.caseStatement(stm));
+			return ((Statement) o).getBlock() != null; //
 		}
 		return o instanceof Block || o instanceof Model;
 	}
+
+	@Override
+	public boolean createReferenceDescriptions(final EObject from, final URI exportedContainerURI,
+			final IAcceptor<IReferenceDescription> acceptor) {
+		// TODO Auto-generated method stub
+		return super.createReferenceDescriptions(from, exportedContainerURI, acceptor);
+	}
+
+	@Override
+	protected boolean isResolvedAndExternal(final EObject from, final EObject to) {
+		if (to == null)
+			return false;
+		if (to.eResource() == null)
+			return false;
+		if (to.eResource().getURI().lastSegment().endsWith("xmi"))
+			return false;
+		return super.isResolvedAndExternal(from, to);
+
+	}
+
 }

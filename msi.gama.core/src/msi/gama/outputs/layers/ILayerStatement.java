@@ -1,17 +1,16 @@
 /*********************************************************************************************
  *
+ * 'ILayerStatement.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'ILayerStatement.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs.layers;
 
-import msi.gama.common.interfaces.*;
+import msi.gama.common.interfaces.IKeyword;
+import msi.gama.common.interfaces.IStepable;
 import msi.gama.outputs.IDisplayOutput;
 import msi.gaml.compilation.ISymbol;
 
@@ -22,28 +21,46 @@ import msi.gaml.compilation.ISymbol;
  * @since 14 d�c. 2011
  *
  */
-public interface ILayerStatement extends INamed, IStepable, ISymbol, Comparable<ILayerStatement> {
+public interface ILayerStatement extends IStepable, ISymbol, Comparable<ILayerStatement> {
 
-	public final static short GRID = 1;
-	public final static short AGENTS = 2;
-	public final static short SPECIES = 3;
-	public final static short TEXT = 4;
-	public final static short IMAGE = 5;
-	public final static short GIS = 6;
-	public final static short CHART = 7;
-	public final static short QUADTREE = 8;
-	public final static short EVENT = 9;
-	public final static short GRAPHICS = 10;
-	public final static short OVERLAY = 11;
-	public final static short CAMERA = 12;
+	public static enum LayerType {
 
-	public abstract short getType();
+		GRID(IKeyword.GRID),
+		AGENTS(IKeyword.AGENTS),
+		SPECIES(IKeyword.SPECIES),
+		IMAGE(IKeyword.IMAGE),
+		GIS(IKeyword.GIS),
+		CHART(IKeyword.CHART),
+		EVENT(IKeyword.EVENT),
+		GRAPHICS(IKeyword.GRAPHICS),
+		OVERLAY(IKeyword.OVERLAY),
+		CAMERA(IKeyword.CAMERA),
+		LIGHT("light");
+
+		private final String name;
+
+		LayerType(final String s) {
+			name = s;
+		}
+
+		static LayerType get(final String s) {
+			for (final LayerType lt : values()) {
+				if (lt.name.equals(s))
+					return lt;
+			}
+			return null;
+		}
+
+		@Override
+		public String toString() {
+			return name;
+		}
+
+	}
+
+	public abstract LayerType getType();
 
 	public abstract Double getTransparency();
-
-	void setOrder(Integer i);
-
-	Integer getOrder();
 
 	public abstract Boolean getRefresh();
 

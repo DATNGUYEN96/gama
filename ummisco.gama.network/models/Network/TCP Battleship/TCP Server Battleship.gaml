@@ -1,14 +1,11 @@
 /**
-* Name: Server Ship
-* Author: damienphilippon
-* Description: This model must be used with an other instance of Gama having the  User Ship model launched. It shows 
-* 	how to use the skill network to produce a client-server architecture. The server model do computations according
-*	to the interactions sent by the clients, and send to them the new attributes of the agents. 
-* Tags: User Interaction, Network
+* Name: TCPServerBattleship2
+* Author: nicolas
+* Description: Describe here the model and its experiments
+* Tags: Tag1, Tag2, TagN
 */
 
-model server
-
+model TCPServerBattleship
 global
 {
 	//Id of the bullets that will be incrementally updated when a Bullet is created
@@ -68,6 +65,7 @@ global
 	}
 }
 
+
 //Species which represent the recif in the worlds
 species Recif
 {
@@ -77,6 +75,7 @@ species Recif
 		draw shape at:{world.shape.width/2,world.shape.height/2,0};
 	}
 }
+
 //Species which represent the server using the skill network
 species NetworkingServer skills:[network]
 {
@@ -99,7 +98,7 @@ species NetworkingServer skills:[network]
 			{
 
 				//We split the message by : to get a list of values for each message
-				list<string> infoInMess<-aMess split_with ":";
+				list<string> infoInMess<-string(aMess) split_with ":";
 				
 				//If there are more than 0 value and it's different from the previous message, we can process it
 				if(length(infoInMess)>0)and(infoInMess!=prevInfoInMess)
@@ -171,6 +170,7 @@ species NetworkingServer skills:[network]
 		}
 	}
 }
+
 //Species which represent the bullets, using the skill moving
 species bullet skills:[moving]
 {
@@ -255,6 +255,8 @@ species bullet skills:[moving]
 	}
 }
 
+
+
 //Species that represent the ships using the skill moving
 species ship skills:[moving]
 {
@@ -280,10 +282,10 @@ species ship skills:[moving]
 	string killer;
 	
 	//Action to process a message to update the ship
-	action doAction(string message)
+	action doAction(string msg)
 	{
 		//If the message is up, will move the boat according to its direction and the wind vector
-		if(message="up")
+		if(msg="up")
 		{
 			//Computation of the wind factor on the speed of the ship
 			float diff_wind<-abs(heading-wind.x);
@@ -301,7 +303,7 @@ species ship skills:[moving]
 			do move speed: (speed*2)*factor heading: heading bounds: free_space;
 		}
 		//If the message is right, will set the direction a little bit on the right and move the boat according to its direction and the wind vector
-		if(message="right")
+		if(msg="right")
 		{
 			self.heading<-self.heading+rotation_max;
 			//Computation of the wind factor on the speed of the ship
@@ -320,7 +322,7 @@ species ship skills:[moving]
 			do move speed: speed*factor heading: heading bounds: free_space;
 		}
 		//If the message is left, will set the direction a little bit on the left and move the boat according to its direction and the wind vector
-		if(message="left")
+		if(msg="left")
 		{
 			self.heading<-self.heading-rotation_max;
 			//Computation of the wind factor on the speed of the ship
@@ -341,7 +343,7 @@ species ship skills:[moving]
 		}
 		
 		//if the message is bulletleft, will make the ship shoot a bullet on the left part of the ship
-		if(message="bulletleft")
+		if(msg="bulletleft")
 		{
 			//Will allow the shoot only if the step between the cycle and the last shooting cycle is equals to 1.5
 			if(cycle-last_cycle_shooting>15)
@@ -367,7 +369,7 @@ species ship skills:[moving]
 			}
 		}
 		//if the message is bulletleft, will make the ship shoot a bullet on the left part of the ship
-		if(message="bulletright")
+		if(msg="bulletright")
 		{
 			if(cycle-last_cycle_shooting>15)
 			{
@@ -399,9 +401,10 @@ species ship skills:[moving]
 		draw name at:location color:#silver;
 	}
 }
-//Experiment to launch the server
-experiment launchServer type: gui
-{
+
+
+
+experiment launchServer type: gui {
 	float minimum_cycle_duration<-0.10#s;
 	output
 	{

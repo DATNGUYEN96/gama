@@ -1,12 +1,11 @@
 /*********************************************************************************************
  *
- *
- * 'SimulationOutputManager.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'SimulationOutputManager.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs;
@@ -52,21 +51,27 @@ public class SimulationOutputManager extends AbstractOutputManager {
 
 	@Override
 	public boolean init(final IScope scope) {
-		scope.getGui().waitStatus(" Building outputs ");
+		scope.getGui().getStatus(scope).waitStatus(" Building outputs ");
 		final boolean result = super.init(scope);
-		updateDisplayOutputsName(scope.getSimulationScope());
-		scope.getGui().informStatus(" " + scope.getRoot().getName() + " ready");
+		updateDisplayOutputsName(scope.getSimulation());
+		scope.getGui().getStatus(scope).informStatus(" " + scope.getRoot().getName() + " ready");
 		return result;
 	}
 
 	public void updateDisplayOutputsName(final SimulationAgent agent) {
-		for (final IOutput out : getOutputs().values()) {
+		for (final IOutput out : this) {
 			if (out instanceof IDisplayOutput) {
 				final IDisplayOutput display = (IDisplayOutput) out;
 				GAMA.getGui().updateViewTitle(display, agent);
 			}
 		}
 
+	}
+
+	@Override
+	public void dispose(IScope scope) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

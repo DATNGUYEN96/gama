@@ -12,12 +12,12 @@ global skills:[network]{
 		  do connect to:"localhost" with_name:"reciever";
 	}
 	
-	reflex updateSimulation when:has_received_message(){
-		map mess <- fetch_message();
+	reflex updateSimulation when:has_more_message(){
+		message mess <- fetch_message();
 	}
 	
 	action teletransportation (NetworkingAgent a, string s){
-	  do send_message to:s content:a;
+	  do send to:s contents:a;
 	}
 }
 
@@ -25,7 +25,7 @@ global skills:[network]{
 
 species NetworkingAgent skills:[moving]{
    rgb color;
-   reflex updateState when:every(10){
+   reflex updateState when:every(10#cycles){
    			write "teleportation from reciever to sender";
    			ask world{
 	          do teletransportation(myself,"sender");	

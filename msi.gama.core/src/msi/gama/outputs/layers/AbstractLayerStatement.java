@@ -1,18 +1,18 @@
 /*********************************************************************************************
  *
+ * 'AbstractLayerStatement.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'AbstractLayerStatement.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs.layers;
 
 import java.util.Collections;
 import java.util.List;
+
+import com.google.common.primitives.Ints;
 
 import msi.gama.common.interfaces.IKeyword;
 import msi.gama.outputs.IDisplayOutput;
@@ -34,14 +34,14 @@ import msi.gaml.expressions.IExpression;
  * @todo Description
  *
  */
-@inside(symbols = IKeyword.DISPLAY)
+@inside (
+		symbols = IKeyword.DISPLAY)
 public abstract class AbstractLayerStatement extends Symbol implements ILayerStatement {
 
 	private IDisplayLayerBox box;
 	LayeredDisplayOutput output;
-	private Integer order = 0;
 	protected boolean layerToCreate = true;
-	
+
 	public boolean isToCreate() {
 		return layerToCreate;
 	}
@@ -49,32 +49,21 @@ public abstract class AbstractLayerStatement extends Symbol implements ILayerSta
 	public AbstractLayerStatement(final IDescription desc) throws GamaRuntimeException {
 		super(desc);
 		setBox(new LayerBox(getFacet(IKeyword.TRANSPARENCY), getFacet(IKeyword.POSITION), getFacet(IKeyword.SIZE),
-				getFacet(IKeyword.REFRESH), getFacet(IKeyword.TRACE), getFacet(IKeyword.FADING),
-				getFacet(IKeyword.SELECTABLE)));
-		final IExpression title = getFacet(IKeyword.NAME);
-		if (title != null && title.isConst()) {
-			setName(title.literalValue());
-		}
+				getRefreshFacet(), getFacet(IKeyword.TRACE), getFacet(IKeyword.FADING), getFacet(IKeyword.SELECTABLE)));
+		setName(desc.getName());
 	}
 
-	@Override
-	public void setOrder(final Integer o) {
-		order = o;
-	}
-
-	@Override
-	public Integer getOrder() {
-		return order;
+	public IExpression getRefreshFacet() {
+		return getFacet(IKeyword.REFRESH);
 	}
 
 	@Override
 	public int compareTo(final ILayerStatement o) {
-		return order.compareTo(o.getOrder());
+		return Ints.compare(getOrder(), o.getOrder());
 	}
 
 	@Override
 	public final boolean init(final IScope scope) {
-		// getBox().compute(scope);
 		return _init(scope);
 	}
 
@@ -96,13 +85,11 @@ public abstract class AbstractLayerStatement extends Symbol implements ILayerSta
 	}
 
 	@Override
-	public abstract short getType();
+	public abstract LayerType getType();
 
 	@Override
 	public final boolean step(final IScope scope) throws GamaRuntimeException {
-		if (!scope.interrupted()) {
-			return _step(scope);
-		}
+		if (!scope.interrupted()) { return _step(scope); }
 		return false;
 	}
 
@@ -129,8 +116,7 @@ public abstract class AbstractLayerStatement extends Symbol implements ILayerSta
 	}
 
 	@Override
-	public void setChildren(final List<? extends ISymbol> children) {
-	}
+	public void setChildren(final Iterable<? extends ISymbol> children) {}
 
 	public List<? extends ISymbol> getChildren() {
 		return Collections.EMPTY_LIST;

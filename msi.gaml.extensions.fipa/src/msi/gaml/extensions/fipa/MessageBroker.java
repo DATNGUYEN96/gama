@@ -23,7 +23,6 @@ import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gama.util.GamaList;
 import msi.gama.util.GamaListFactory;
 import msi.gama.util.IList;
-import msi.gaml.statements.IExecutable;
 import msi.gaml.types.IType;
 import msi.gaml.types.Types;
 
@@ -47,7 +46,7 @@ public class MessageBroker {
 	private final Map<IAgent, ConversationsMessages> conversationsMessages = new HashMap<IAgent, ConversationsMessages>();
 
 	/** The instance. */
-	private static Map<SimulationAgent, MessageBroker> instances = new HashMap();
+	private static Map<SimulationAgent, MessageBroker> instances = new HashMap<>();
 
 	/**
 	 * @throws GamaRuntimeException
@@ -129,7 +128,7 @@ public class MessageBroker {
 	private void scheduleForDelivery(final FIPAMessage m, final IAgent agent) {
 		List<FIPAMessage> messages = messagesToDeliver.get(agent);
 		if (messages == null) {
-			messages = new ArrayList();
+			messages = new ArrayList<>();
 			messagesToDeliver.put(agent, messages);
 		}
 		messages.add(m);
@@ -167,28 +166,20 @@ public class MessageBroker {
 	 * @return single instance of MessageBroker
 	 */
 	public static MessageBroker getInstance(final IScope scope) {
-		MessageBroker instance = instances.get(scope.getSimulationScope());
+		MessageBroker instance = instances.get(scope.getSimulation());
 		if (instance == null) {
 			instance = new MessageBroker();
-			instances.put(scope.getSimulationScope(), instance);
+			instances.put(scope.getSimulation(), instance);
 
-			scope.getSimulationScope().postEndAction(new IExecutable() {
-
-				@Override
-				public Object executeOn(final IScope scope) throws GamaRuntimeException {
-					instances.get(scope.getSimulationScope()).manageConversationsAndMessages();
-					return null;
-				}
+			scope.getSimulation().postEndAction(scope1 -> {
+				instances.get(scope1.getSimulation()).manageConversationsAndMessages();
+				return null;
 			});
-			scope.getSimulationScope().postDisposeAction(new IExecutable() {
-
-				@Override
-				public Object executeOn(final IScope scope) throws GamaRuntimeException {
-					if (instances.get(scope.getSimulationScope()) != null)
-						instances.get(scope.getSimulationScope()).schedulerDisposed();
-					instances.remove(scope.getSimulationScope());
-					return null;
-				}
+			scope.getSimulation().postDisposeAction(scope1 -> {
+				if (instances.get(scope1.getSimulation()) != null)
+					instances.get(scope1.getSimulation()).schedulerDisposed();
+				instances.remove(scope1.getSimulation());
+				return null;
 			});
 		}
 		return instance;

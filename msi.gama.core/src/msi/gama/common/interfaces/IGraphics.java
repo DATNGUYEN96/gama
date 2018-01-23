@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'IGraphics.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'IGraphics.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.common.interfaces;
@@ -17,9 +15,9 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 import msi.gama.metamodel.shape.ILocation;
-import msi.gama.metamodel.shape.IShape;
 import msi.gama.outputs.layers.OverlayLayer;
 import msi.gama.util.file.GamaFile;
 import msi.gaml.statements.draw.FieldDrawingAttributes;
@@ -39,11 +37,13 @@ public interface IGraphics {
 	public static final RenderingHints SPEED_RENDERING = new RenderingHints(null);
 	public static final RenderingHints MEDIUM_RENDERING = new RenderingHints(null);
 
+	public void setDisplaySurface(final IDisplaySurface surface);
+
 	public abstract int getDisplayWidth();
 
 	public abstract int getDisplayHeight();
 
-	public abstract Rectangle2D drawFile(GamaFile file, FileDrawingAttributes attributes);
+	public abstract Rectangle2D drawFile(GamaFile<?, ?> file, FileDrawingAttributes attributes);
 
 	public abstract Rectangle2D drawField(final double[] values, final FieldDrawingAttributes attributes);
 
@@ -51,7 +51,7 @@ public interface IGraphics {
 
 	public abstract Rectangle2D drawString(final String string, final TextDrawingAttributes attributes);
 
-	public abstract Rectangle2D drawShape(final IShape shape, final ShapeDrawingAttributes attributes);
+	public abstract Rectangle2D drawShape(final Geometry shape, final ShapeDrawingAttributes attributes);
 
 	public abstract void setOpacity(double i);
 
@@ -70,8 +70,7 @@ public interface IGraphics {
 	public abstract double getxRatioBetweenPixelsAndModelUnits();
 
 	/*
-	 * Returns the region of the current layer (in model units) that is visible
-	 * on screen
+	 * Returns the region of the current layer (in model units) that is visible on screen
 	 */
 	public abstract Envelope getVisibleRegion();
 
@@ -106,5 +105,22 @@ public interface IGraphics {
 	public void dispose();
 
 	boolean cannotDraw();
+
+	public abstract boolean isNotReadyToUpdate();
+
+	public int getWidthForOverlay();
+
+	public int getHeightForOverlay();
+
+	/**
+	 * Ask the IGraphics instance to accumulate temporary envelopes
+	 * 
+	 * @param env
+	 */
+	public default void accumulateTemporaryEnvelope(final Rectangle2D env) {}
+
+	public default Rectangle2D getAndWipeTemporaryEnvelope() {
+		return null;
+	}
 
 }

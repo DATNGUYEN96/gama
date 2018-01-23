@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'AWTDisplayGraphics.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'AWTDisplayGraphics.java', in plugin 'msi.gama.application', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 
@@ -40,15 +38,18 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
+import java.util.List;
 
 import com.vividsolutions.jts.awt.PointTransformation;
 import com.vividsolutions.jts.awt.ShapeWriter;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.Lineal;
 import com.vividsolutions.jts.geom.Puntal;
 
-import msi.gama.common.interfaces.IDisplaySurface;
+import msi.gama.common.geometry.AxisAngle;
+import msi.gama.common.geometry.GeometryUtils;
 import msi.gama.metamodel.shape.GamaPoint;
 import msi.gama.metamodel.shape.GamaShape;
 import msi.gama.metamodel.shape.ILocation;
@@ -56,7 +57,6 @@ import msi.gama.metamodel.shape.IShape;
 import msi.gama.outputs.layers.OverlayLayer;
 import msi.gama.runtime.IScope;
 import msi.gama.util.GamaColor;
-import msi.gama.util.GamaPair;
 import msi.gama.util.file.GamaFile;
 import msi.gama.util.file.GamaGeometryFile;
 import msi.gama.util.file.GamaImageFile;
@@ -70,14 +70,12 @@ import msi.gaml.statements.draw.TextDrawingAttributes;
 
 /**
  *
- * Simplifies the drawing of circles, rectangles, and so forth. Rectangles are
- * generally faster to draw than circles. The Displays should take care of
- * layouts while objects that wish to be drawn as a shape need only call the
+ * Simplifies the drawing of circles, rectangles, and so forth. Rectangles are generally faster to draw than circles.
+ * The Displays should take care of layouts while objects that wish to be drawn as a shape need only call the
  * appropriate method.
  * <p>
  *
- * 29/04/2013: Deep revision to simplify the interface due to the changes in
- * draw/aspects
+ * 29/04/2013: Deep revision to simplify the interface due to the changes in draw/aspects
  *
  * @author Nick Collier, Alexis Drogoul, Patrick Taillandier
  * @version $Revision: 1.13 $ $Date: 2010-03-19 07:12:24 $
@@ -86,8 +84,8 @@ import msi.gaml.statements.draw.TextDrawingAttributes;
 public class AWTDisplayGraphics extends AbstractDisplayGraphics implements PointTransformation {
 
 	private Graphics2D currentRenderer, overlayRenderer, normalRenderer;
+	private Rectangle2D temporaryEnvelope = null;
 	private final ShapeWriter sw = new ShapeWriter(this);
-	private boolean highlight;
 	private static final Font defaultFont = new Font("Helvetica", Font.BOLD, 12);
 
 	static {
@@ -112,11 +110,9 @@ public class AWTDisplayGraphics extends AbstractDisplayGraphics implements Point
 
 	}
 
-	public AWTDisplayGraphics(final IDisplaySurface surface, final Graphics2D g2) {
-		super(surface);
-		currentRenderer = g2;
-		currentRenderer.setFont(defaultFont);
-
+	public AWTDisplayGraphics(final Graphics2D g2) {
+		setGraphics2D(g2);
+		sw.setRemoveDuplicatePoints(true);
 	}
 
 	@Override
@@ -154,83 +150,56 @@ public class AWTDisplayGraphics extends AbstractDisplayGraphics implements Point
 	}
 
 	@Override
-	public Rectangle2D drawField(final double[] fieldValues, final FieldDrawingAttributes attributes) {// Construire
-																										// l'image
-																										// a
-																										// partir
-																										// du
-																										// tableau
-																										// de
-																										// doubles
-																										// et
-																										// l'afficher
-		if (attributes.textures == null) {
-			return null;
-		}
-		final Object image = attributes.textures.get(0);
-		if (image instanceof GamaFile) {
-			return drawFile((GamaFile) image, attributes);
-		}
-		if (image instanceof BufferedImage) {
-			return drawImage((BufferedImage) image, attributes);
-		}
+	public Rectangle2D drawField(final double[] fieldValues, final FieldDrawingAttributes attributes) {
+		final List<?> textures = attributes.getTextures();
+		if (textures == null) { return null; }
+		final Object image = textures.get(0);
+		if (image instanceof GamaFile) { return drawFile((GamaFile<?, ?>) image, attributes); }
+		if (image instanceof BufferedImage) { return drawImage((BufferedImage) image, attributes); }
 		return null;
 	}
 
 	@Override
-	public Rectangle2D drawFile(final GamaFile file, final FileDrawingAttributes attributes) {
-		final IScope scope = surface.getDisplayScope();
-		if (file instanceof GamaImageFile) {
-			return drawImage(((GamaImageFile) file).getImage(scope), attributes);
-		}
-		if (!(file instanceof GamaGeometryFile)) {
-			return null;
-		}
+	public Rectangle2D drawFile(final GamaFile<?, ?> file, final FileDrawingAttributes attributes) {
+		final IScope scope = surface.getScope();
+		if (file instanceof GamaImageFile) { return drawImage(
+				((GamaImageFile) file).getImage(scope, attributes.useCache()), attributes); }
+		if (!(file instanceof GamaGeometryFile)) { return null; }
 		IShape shape = Cast.asGeometry(scope, file);
-		if (shape == null) {
-			return null;
-		}
-		final GamaPair<Double, GamaPoint> rot = attributes.rotation;
-		final Double rotation = rot == null ? null : rot.key;
-		// System.out.println("Old centroid " +
-		// shape.getInnerGeometry().getCentroid());
-		// shape = shape.translatedTo(scope, attributes.location);
-		// System.out.println("Centroid after translation" +
-		// shape.getInnerGeometry().getCentroid());
-		shape = new GamaShape(shape, null, rotation, attributes.location, attributes.size, true);
-		// shape = new GamaShape(shape, null, rotation, attributes.location);
-		// System.out.println("New centroid " +
-		// shape.getInnerGeometry().getCentroid());
-		final GamaColor c = attributes.color;
-		return drawShape(shape, new ShapeDrawingAttributes(new GamaPoint((Coordinate) shape.getLocation()), c, c));
+		if (shape == null) { return null; }
+		final AxisAngle rotation = attributes.getRotation();
+		shape = new GamaShape(shape, null, rotation, attributes.getLocation(), attributes.getSize(), true);
+		final GamaColor c = attributes.getColor();
+		return drawShape(shape.getInnerGeometry(),
+				new ShapeDrawingAttributes(new GamaPoint((Coordinate) shape.getLocation()), c, c));
 	}
 
 	@Override
 	public Rectangle2D drawImage(final BufferedImage img, final FileDrawingAttributes attributes) {
 		final AffineTransform saved = currentRenderer.getTransform();
 		double curX, curY;
-		if (attributes.location == null) {
+		if (attributes.getLocation() == null) {
 			curX = getXOffsetInPixels();
 			curY = getYOffsetInPixels();
 		} else {
-			curX = xFromModelUnitsToPixels(attributes.location.getX());
-			curY = yFromModelUnitsToPixels(attributes.location.getY());
+			curX = xFromModelUnitsToPixels(attributes.getLocation().getX());
+			curY = yFromModelUnitsToPixels(attributes.getLocation().getY());
 		}
 		double curWidth, curHeight;
-		if (attributes.size == null) {
+		if (attributes.getSize() == null) {
 			curWidth = getLayerWidth();
 			curHeight = getLayerHeight();
 		} else {
-			curWidth = wFromModelUnitsToPixels(attributes.size.getX());
-			curHeight = hFromModelUnitsToPixels(attributes.size.getY());
+			curWidth = wFromModelUnitsToPixels(attributes.getSize().getX());
+			curHeight = hFromModelUnitsToPixels(attributes.getSize().getY());
 		}
-		if (attributes.rotation != null && attributes.rotation.key != null) {
-			currentRenderer.rotate(Maths.toRad * attributes.rotation.key, curX + curWidth / 2d, curY + curHeight / 2d);
+		if (attributes.getAngle() != null) {
+			currentRenderer.rotate(Maths.toRad * attributes.getAngle(), curX + curWidth / 2d, curY + curHeight / 2d);
 		}
 		currentRenderer.drawImage(img, (int) FastMath.round(curX), (int) FastMath.round(curY), (int) curWidth,
 				(int) curHeight, null);
-		if (attributes.border != null) {
-			drawGridLine(img, attributes.border);
+		if (attributes.getBorder() != null) {
+			drawGridLine(img, attributes.getBorder());
 		}
 		currentRenderer.setTransform(saved);
 		rect.setRect(curX, curY, curWidth, curHeight);
@@ -260,52 +229,66 @@ public class AWTDisplayGraphics extends AbstractDisplayGraphics implements Point
 			final Rectangle2D result = new Rectangle2D.Double();
 			for (final String s : string.split("\n")) {
 				final Rectangle2D r = drawString(s, attributes);
-				attributes.location.setY(attributes.location.getY() + r.getHeight());
+				attributes.getLocation().setY(attributes.getLocation().getY() + r.getHeight());
 				result.add(r);
 			}
 			return result;
 		}
-		currentRenderer.setColor(highlight ? data.getHighlightColor() : attributes.color);
+		currentRenderer.setColor(highlight ? data.getHighlightColor() : attributes.getColor());
 		double curX, curY;
-		final double curZ;
-		if (attributes.location == null) {
+		// final double curZ;
+		if (attributes.getLocation() == null) {
 			curX = getXOffsetInPixels();
 			curY = getYOffsetInPixels();
 			// curZ = 0;
 		} else {
-			curX = xFromModelUnitsToPixels(attributes.location.getX());
-			curY = yFromModelUnitsToPixels(attributes.location.getY());
+			curX = xFromModelUnitsToPixels(attributes.getLocation().getX());
+			curY = yFromModelUnitsToPixels(attributes.getLocation().getY());
 		}
 		currentRenderer.setFont(attributes.font);
 		final AffineTransform saved = currentRenderer.getTransform();
-		if (attributes.rotation != null && attributes.rotation.key != null) {
+		if (attributes.getAngle() != null) {
 			final Rectangle2D r = currentRenderer.getFontMetrics().getStringBounds(string, currentRenderer);
-			currentRenderer.rotate(Maths.toRad * attributes.rotation.key, curX + r.getWidth() / 2,
+			currentRenderer.rotate(Maths.toRad * attributes.getAngle(), curX + r.getWidth() / 2,
 					curY + r.getHeight() / 2);
 		}
 		currentRenderer.drawString(string, (int) curX, (int) curY);
 		currentRenderer.setTransform(saved);
-		return currentRenderer.getFontMetrics().getStringBounds(string, currentRenderer);
-
+		final Rectangle2D result = currentRenderer.getFontMetrics().getStringBounds(string, currentRenderer);
+		result.setFrame(curX, curY, result.getWidth(), result.getHeight());
+		return result;
 	}
 
 	@Override
-	public Rectangle2D drawShape(final IShape geometry, final ShapeDrawingAttributes attributes) {
-		if (geometry == null) {
-			return null;
+	public Rectangle2D drawShape(final Geometry geometry, final ShapeDrawingAttributes attributes) {
+		if (geometry == null) { return null; }
+		if (geometry instanceof GeometryCollection) {
+			final Rectangle2D result = new Rectangle2D.Double();
+			GeometryUtils.applyToInnerGeometries(geometry, (g) -> result.add(drawShape(g, attributes)));
+			return result;
 		}
-		final Geometry geom = geometry.getInnerGeometry();
-		final Shape s = sw.toShape(geom);
+		final boolean isLine = geometry instanceof Lineal || geometry instanceof Puntal;
+
+		GamaColor border = isLine ? attributes.getColor() : attributes.getBorder();
+		if (border == null && attributes.isEmpty()) {
+			border = attributes.getColor();
+		}
+		if (highlight) {
+			attributes.setColor(GamaColor.getInt(data.getHighlightColor().getRGB()));
+			if (border != null)
+				border = attributes.getColor();
+		}
+		final Shape s = sw.toShape(geometry);
 		try {
 			final Rectangle2D r = s.getBounds2D();
-			currentRenderer.setColor(highlight ? data.getHighlightColor() : attributes.color);
-			if (geom instanceof Lineal || geom instanceof Puntal ? false : !attributes.empty) {
+			currentRenderer.setColor(attributes.getColor());
+			if (!isLine && !attributes.isEmpty()) {
 				currentRenderer.fill(s);
-				if (attributes.border != null) {
-					currentRenderer.setColor(highlight ? data.getHighlightColor() : attributes.border);
-				}
 			}
-			if (attributes.border != null) {
+			if (isLine || border != null || attributes.isEmpty()) {
+				if (border != null) {
+					currentRenderer.setColor(border);
+				}
 				currentRenderer.draw(s);
 			}
 			return r;
@@ -327,9 +310,7 @@ public class AWTDisplayGraphics extends AbstractDisplayGraphics implements Point
 		// The image contains the dimensions of the grid.
 		final double stepx = (double) getLayerWidth() / (double) image.getWidth();
 		final double stepy = (double) getLayerHeight() / (double) image.getHeight();
-		if (stepx < 2 || stepy < 2) {
-			return;
-		}
+		if (stepx < 2 || stepy < 2) { return; }
 		final Line2D line = new Line2D.Double();
 		currentRenderer.setColor(lineColor);
 		for (double step = 0.0, end = getLayerWidth(); step < end + 1; step += stepx) {
@@ -353,9 +334,7 @@ public class AWTDisplayGraphics extends AbstractDisplayGraphics implements Point
 	}
 
 	private void highlightRectangleInPixels(final Rectangle2D r) {
-		if (r == null) {
-			return;
-		}
+		if (r == null) { return; }
 		final Stroke oldStroke = currentRenderer.getStroke();
 		currentRenderer.setStroke(new BasicStroke(5));
 		final Color old = currentRenderer.getColor();
@@ -379,21 +358,21 @@ public class AWTDisplayGraphics extends AbstractDisplayGraphics implements Point
 	public void beginOverlay(final OverlayLayer layer) {
 		currentRenderer = overlayRenderer;
 		currentRenderer.setColor(layer.getBackground());
+		final int x = (int) getXOffsetInPixels();
+		final int y = (int) getYOffsetInPixels();
+		final int w = getLayerWidth();
+		final int h = getLayerHeight();
 		if (layer.isRounded()) {
-			currentRenderer.fillRoundRect((int) getXOffsetInPixels(), (int) getYOffsetInPixels(), getLayerWidth(),
-					getLayerHeight(), 10, 10);
+			currentRenderer.fillRoundRect(x, y, w, h, 10, 10);
 		} else {
-			currentRenderer.fillRect((int) getXOffsetInPixels(), (int) getYOffsetInPixels(), getLayerWidth(),
-					getLayerHeight());
+			currentRenderer.fillRect(x, y, w, h);
 		}
 		if (layer.getBorder() != null) {
 			currentRenderer.setColor(layer.getBorder());
 			if (layer.isRounded()) {
-				currentRenderer.drawRoundRect((int) getXOffsetInPixels(), (int) getYOffsetInPixels(), getLayerWidth(),
-						getLayerHeight(), 10, 10);
+				currentRenderer.drawRoundRect(x, y, w, h, 10, 10);
 			} else {
-				currentRenderer.drawRect((int) getXOffsetInPixels(), (int) getYOffsetInPixels(), getLayerWidth(),
-						getLayerHeight());
+				currentRenderer.drawRect(x, y, w, h);
 			}
 		}
 	}
@@ -406,6 +385,9 @@ public class AWTDisplayGraphics extends AbstractDisplayGraphics implements Point
 	public void setGraphics2D(final Graphics2D g) {
 		normalRenderer = g;
 		currentRenderer = g;
+		if (g != null) {
+			g.setFont(defaultFont);
+		}
 	}
 
 	public void setUntranslatedGraphics2D(final Graphics2D g) {
@@ -430,6 +412,31 @@ public class AWTDisplayGraphics extends AbstractDisplayGraphics implements Point
 	@Override
 	public ILocation getCameraOrientation() {
 		return GamaPoint.NULL_POINT;
+	}
+
+	@Override
+	public int getWidthForOverlay() {
+		return getDisplayWidth();
+	}
+
+	@Override
+	public int getHeightForOverlay() {
+		return getDisplayHeight();
+	}
+
+	@Override
+	public void accumulateTemporaryEnvelope(final Rectangle2D env) {
+		if (temporaryEnvelope == null)
+			temporaryEnvelope = env;
+		else
+			temporaryEnvelope.add(env);
+	}
+
+	@Override
+	public Rectangle2D getAndWipeTemporaryEnvelope() {
+		final Rectangle2D result = temporaryEnvelope;
+		temporaryEnvelope = null;
+		return result;
 	}
 
 }

@@ -1,18 +1,18 @@
 /*********************************************************************************************
  *
+ * 'IOutputManager.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'IOutputManager.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs;
 
 import java.util.Map;
+
 import msi.gama.common.interfaces.IStepable;
+import msi.gama.runtime.IScope;
 
 /**
  * The class IOutputManager.
@@ -21,26 +21,44 @@ import msi.gama.common.interfaces.IStepable;
  * @since 14 d�c. 2011
  *
  */
-public interface IOutputManager extends IStepable {
+public interface IOutputManager extends IStepable, Iterable<IOutput> {
 
-	void addOutput(IOutput output);
+	void add(IOutput output);
 
-	void removeAllOutput();
+	void put(String name, IOutput output);
 
-	void removeOutput(IOutput output);
+	void clear();
 
-	IOutput getOutput(String id);
+	void putAll(Map<String, IOutput> outputs);
 
-	public IOutput getOutputWithName(final String name);
+	void remove(IOutput output);
 
-	public IOutput getOutputWithOriginalName(final String name);
+	IOutput get(String id);
+
+	IOutput getOutputWithName(final String name);
+
+	IOutput getOutputWithOriginalName(final String name);
 
 	// hqnghi
 	Map<String, ? extends IOutput> getOutputs();
 
-	void addOutput(String oName, IOutput o);
-
 	// end-hqnghi
 	void forceUpdateOutputs();
+
+	void dispose(IScope scope);
+
+	public Iterable<IDisplayOutput> getDisplayOutputs();
+
+	void pause();
+
+	void resume();
+
+	void synchronize();
+
+	void unSynchronize();
+
+	void close();
+
+	boolean open(IScope scope, IOutput output);
 
 }

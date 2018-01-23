@@ -1,21 +1,28 @@
 /*********************************************************************************************
  *
- *
- * 'AStar.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'AStar.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.metamodel.topology.graph;
 
-import java.util.*;
-import msi.gama.metamodel.shape.*;
-import msi.gama.util.*;
-import msi.gama.util.graph.*;
-import msi.gaml.operators.Maths;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import msi.gama.metamodel.shape.GamaPoint;
+import msi.gama.metamodel.shape.IShape;
+import msi.gama.util.GamaListFactory;
+import msi.gama.util.IList;
+import msi.gama.util.TOrderedHashMap;
+import msi.gama.util.graph.GamaGraph;
+import msi.gama.util.graph._Edge;
+import msi.gama.util.graph._Vertex;
 
 public class AStar<V, E> {
 
@@ -28,7 +35,8 @@ public class AStar<V, E> {
 	protected boolean isSpatialGraph;
 	protected boolean isPathFound = false;
 
-	public AStar() {}
+	public AStar() {
+	}
 
 	public AStar(final GamaGraph<V, E> graph) {
 		init(graph);
@@ -57,7 +65,7 @@ public class AStar<V, E> {
 	}
 
 	public void compute() {
-		if ( source != null && target != null ) {
+		if (source != null && target != null) {
 			aStar(source, target);
 		}
 	}
@@ -71,9 +79,9 @@ public class AStar<V, E> {
 	}
 
 	public IList<E> buildPath(final ASNode target) {
-		IList<E> path = GamaListFactory.create();
+		final IList<E> path = GamaListFactory.create();
 
-		IList<ASNode> thePath = GamaListFactory.create();
+		final IList<ASNode> thePath = GamaListFactory.create();
 		ASNode node = target;
 
 		while (node != null) {
@@ -81,12 +89,12 @@ public class AStar<V, E> {
 			node = node.parent;
 		}
 
-		int n = thePath.size();
+		final int n = thePath.size();
 
-		if ( n > 1 ) {
+		if (n > 1) {
 			ASNode follow = thePath.get(n - 2);
 			path.add(follow.edge);
-			for ( int i = n - 3; i >= 0; i-- ) {
+			for (int i = n - 3; i >= 0; i--) {
 				follow = thePath.get(i);
 				path.add(follow.edge);
 			}
@@ -103,6 +111,7 @@ public class AStar<V, E> {
 		isPathFound = false;
 	}
 
+	@SuppressWarnings("unchecked")
 	protected void aStar(final V sourceNode, final V targetNode) {
 		cleanAll();
 		openMap.put(sourceNode, new ASNode(sourceNode, null, null, 0, heuristic(sourceNode, targetNode)));
@@ -110,55 +119,45 @@ public class AStar<V, E> {
 		isPathFound = false;
 
 		while (!openMap.isEmpty()) {
-			ASNode current = getNextBetterNode();
-
+			final ASNode current = getNextBetterNode();
 			assert current != null;
-
-			if ( current.node == targetNode ) {
+			if (current.node.equals(targetNode)) {
 				assert current.edge != null;
 				isPathFound = true;
 				result = buildPath(current);
-
 				return;
-			} else {
-				openMap.remove(current.node);
-				closedMap.put(current.node, current);
-				_Vertex<V, E> node = graph.getVertex(current.node);
-				Set<E> edges = node.getOutEdges();
-				if ( !graph.isDirected() ) {
-					edges.addAll(node.getInEdges());
-				}
-				for ( E edge : edges ) {
-					_Edge<V, E> eg = graph.getEdge(edge);
+			}
+			openMap.remove(current.node);
+			closedMap.put(current.node, current);
+			final _Vertex<V, E> node = graph.getVertex(current.node);
+			final Set<E> edges = new HashSet<E>(node.getOutEdges());
+			if (!graph.isDirected()) {
+				edges.addAll(node.getInEdges());
 
-					V next = (V) eg.getOther(current.node);
-					double h = heuristic(next, targetNode);
-					double g = current.g + eg.getWeight();
-					double f = g + h;
-					ASNode alreadyInOpen = openMap.get(next);
+			}
+			for (final E edge : edges) {
+				final _Edge<V, E> eg = graph.getEdge(edge);
+				final V next = (V) (eg.getTarget().equals(current.node) ? eg.getSource() : eg.getTarget());
+				if (closedMap.containsKey(next))
+					continue;
 
-					if ( alreadyInOpen != null && alreadyInOpen.rank <= f ) {
-						continue;
-					}
-
-					ASNode alreadyInClosed = closedMap.get(next);
-
-					if ( alreadyInClosed != null && alreadyInClosed.rank <= f ) {
-						continue;
-					}
-
-					closedMap.remove(next);
+				final double h = heuristic(next, targetNode);
+				final double g = current.g + eg.getWeight();
+				final ASNode openNode = openMap.get(next);
+				if (openNode == null)
 					openMap.put(next, new ASNode(next, edge, current, g, h));
+				else if (g >= openNode.rank) {
+					continue;
 				}
 			}
 		}
 	}
 
 	protected double heuristic(final Object node1, final Object node2) {
-		if ( isSpatialGraph ) {
-			GamaPoint pt1 = (GamaPoint) ((IShape) node1).getLocation();
-			GamaPoint pt2 = (GamaPoint) ((IShape) node2).getLocation();
-			return Maths.hypot(pt1.x, pt2.x, pt1.y, pt2.y);
+		if (isSpatialGraph) {
+			final GamaPoint pt1 = (GamaPoint) ((IShape) node1).getLocation();
+			final GamaPoint pt2 = (GamaPoint) ((IShape) node2).getLocation();
+			return pt1.distance(pt2);
 
 		}
 		return 0;
@@ -168,8 +167,8 @@ public class AStar<V, E> {
 		double min = Float.MAX_VALUE;
 		ASNode theChosenOne = null;
 
-		for ( ASNode node : openMap.values() ) {
-			if ( node.rank < min ) {
+		for (final ASNode node : openMap.values()) {
+			if (node.rank < min) {
 				theChosenOne = node;
 				min = node.rank;
 			}

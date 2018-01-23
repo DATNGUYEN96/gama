@@ -1,3 +1,12 @@
+/*********************************************************************************************
+ *
+ * 'AgentIdentifier.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.metamodel.agent;
 
 import java.util.ArrayList;
@@ -8,9 +17,8 @@ import msi.gama.metamodel.population.IPopulation;
 import msi.gama.runtime.IScope;
 
 /**
- * Uniquely identifies an agent using a path from the simulation consisting of a
- * set of species names and index in these species of the different hosts and
- * the agent
+ * Uniquely identifies an agent using a path from the simulation consisting of a set of species names and index in these
+ * species of the different hosts and the agent
  * 
  * @author drogoul
  *
@@ -32,8 +40,8 @@ public class AgentIdentifier {
 		IAgent currentAgent = agent;
 		final IScope scope = agent.getScope();
 		final ITopLevelAgent root = scope.getRoot();
-		final List<String> specs = new ArrayList();
-		final List<Integer> inds = new ArrayList();
+		final List<String> specs = new ArrayList<>();
+		final List<Integer> inds = new ArrayList<>();
 		while (true) {
 			specs.add(currentAgent.getSpeciesName());
 			inds.add(currentAgent.getIndex());
@@ -54,7 +62,7 @@ public class AgentIdentifier {
 	 */
 	public IAgent getAgent(final IScope scope) {
 		final ITopLevelAgent root = scope.getRoot();
-		IPopulation pop = root.getPopulation();
+		IPopulation<? extends IAgent> pop = root.getPopulation();
 		IAgent currentAgent = pop.getAgent(indexes[indexes.length - 1]);
 		if (species.length == 1)
 			return currentAgent;

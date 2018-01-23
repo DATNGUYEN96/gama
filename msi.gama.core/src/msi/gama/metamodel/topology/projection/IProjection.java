@@ -1,19 +1,21 @@
 /*********************************************************************************************
+ *
+ * 'IProjection.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
  *
- * 'IProjection.java', in plugin 'msi.gama.core', is part of the source code of the 
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
  **********************************************************************************************/
 package msi.gama.metamodel.topology.projection;
 
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
-import com.vividsolutions.jts.geom.*;
+
+import com.vividsolutions.jts.geom.Geometry;
+
+import msi.gama.common.geometry.Envelope3D;
+import msi.gama.runtime.IScope;
 
 /**
  * Class IProjection.
@@ -30,11 +32,11 @@ public interface IProjection {
 
 	public abstract Geometry inverseTransform(final Geometry g);
 
-	public abstract CoordinateReferenceSystem getInitialCRS();
+	public abstract CoordinateReferenceSystem getInitialCRS(IScope scope);
 
-	public abstract CoordinateReferenceSystem getTargetCRS();
+	public abstract CoordinateReferenceSystem getTargetCRS(IScope scope);
 
-	public abstract Envelope getProjectedEnvelope();
+	public abstract Envelope3D getProjectedEnvelope();
 
 	/**
 	 * @param geom
@@ -42,5 +44,10 @@ public interface IProjection {
 	public abstract void translate(Geometry geom);
 
 	public abstract void inverseTranslate(Geometry geom);
+	
+
+	public abstract void convertUnit(Geometry geom);
+
+	public abstract void inverseConvertUnit(Geometry geom);
 
 }

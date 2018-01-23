@@ -1,17 +1,16 @@
 /*********************************************************************************************
  *
+ * 'GamaNoType.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'GamaNoType.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.types;
 
 import msi.gama.common.interfaces.IKeyword;
+import msi.gama.precompiler.GamlAnnotations.doc;
 import msi.gama.precompiler.GamlAnnotations.type;
 import msi.gama.precompiler.IConcept;
 import msi.gama.precompiler.ISymbolKind;
@@ -25,9 +24,15 @@ import msi.gama.runtime.IScope;
  * @todo Description
  *
  */
-@type(name = IKeyword.UNKNOWN, id = IType.NONE, wraps = {
-		Object.class }, kind = ISymbolKind.Variable.REGULAR, concept = { IConcept.TYPE })
-public class GamaNoType extends GamaType {
+@SuppressWarnings ("unchecked")
+@type (
+		name = IKeyword.UNKNOWN,
+		id = IType.NONE,
+		wraps = { Object.class },
+		kind = ISymbolKind.Variable.REGULAR,
+		concept = { IConcept.TYPE },
+		doc = @doc ("A type, root of all other types, that represents values without a precise type"))
+public class GamaNoType extends GamaType<Object> {
 
 	@Override
 	public Object cast(final IScope scope, final Object obj, final Object param, final boolean copy) {
@@ -41,12 +46,12 @@ public class GamaNoType extends GamaType {
 	}
 
 	@Override
-	public boolean isSuperTypeOf(final IType type) {
+	public boolean isSuperTypeOf(final IType<?> type) {
 		return true;
 	}
 
 	@Override
-	public IType findCommonSupertypeWith(final IType iType) {
+	public IType<Object> findCommonSupertypeWith(final IType<?> iType) {
 		// By default, this is the supertype common to all subtypes
 		return /* iType.getDefault() == null ? iType : */this;
 	}
@@ -56,9 +61,19 @@ public class GamaNoType extends GamaType {
 		return true;
 	}
 
+	/**
+	 * An unknown value (at the time of compilation) cannot be translated into a bool, an int or a float value
+	 */
 	@Override
-	public boolean isTranslatableInto(final IType t) {
-		return true;
+	public boolean isTranslatableInto(final IType<?> t) {
+		switch (t.id()) {
+			case IType.BOOL:
+			case IType.INT:
+			case IType.FLOAT:
+				return false;
+			default:
+				return true;
+		}
 	}
 
 }

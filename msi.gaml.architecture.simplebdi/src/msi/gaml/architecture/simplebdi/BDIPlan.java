@@ -1,9 +1,8 @@
 /*********************************************************************************************
  * 
  * 
- * 'BDIPlan.java', in plugin 'msi.gaml.architecture.simplebdi', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * 'BDIPlan.java', in plugin 'msi.gaml.architecture.simplebdi', is part of the source code of the GAMA modeling and
+ * simulation platform. (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
  * 
  * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
  * 
@@ -12,6 +11,7 @@
 package msi.gaml.architecture.simplebdi;
 
 import msi.gama.common.interfaces.IValue;
+import msi.gama.precompiler.GamlAnnotations.doc;
 import msi.gama.precompiler.GamlAnnotations.getter;
 import msi.gama.precompiler.GamlAnnotations.var;
 import msi.gama.precompiler.GamlAnnotations.vars;
@@ -20,50 +20,67 @@ import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gaml.types.IType;
 import msi.gaml.types.Types;
 
-@vars({ @var(name = "name", type = IType.STRING),
-	 @var(name = "todo", type = IType.STRING),
-		@var(name = SimpleBdiPlanStatement.INTENTION, type = IType.NONE),
-		@var(name = SimpleBdiArchitecture.FINISHEDWHEN, type = IType.STRING),
-		@var(name = SimpleBdiArchitecture.INSTANTANEAOUS, type = IType.STRING)
-	/* @var(name = "value", type = IType.NONE),
-	@var(name = "parameters", type = IType.MAP),*/
-//	@var(name = "values", type = IType.MAP), @var(name = "priority", type = IType.FLOAT),
-//	@var(name = "date", type = IType.FLOAT), @var(name = "subintentions", type = IType.LIST),
-//	@var(name = "on_hold_until", type = IType.NONE) 
-	})
+@vars ({ @var (
+		name = "name",
+		type = IType.STRING,
+		doc = @doc ("The name of this BDI plan")),
+		@var (
+				name = "todo",
+				type = IType.STRING),
+		@var (
+				name = SimpleBdiPlanStatement.INTENTION,
+				type = IType.NONE,
+				doc = @doc ("A string representing the current intention of this BDI plan")),
+		@var (
+				name = SimpleBdiArchitecture.FINISHEDWHEN,
+				type = IType.STRING),
+		@var (
+				name = SimpleBdiArchitecture.INSTANTANEAOUS,
+				type = IType.STRING)
+		/*
+		 * @var(name = "value", type = IType.NONE),
+		 * 
+		 * @var(name = "parameters", type = IType.MAP),
+		 */
+		// @var(name = "values", type = IType.MAP), @var(name = "priority", type
+		// = IType.FLOAT),
+		// @var(name = "date", type = IType.FLOAT), @var(name = "subintentions",
+		// type = IType.LIST),
+		// @var(name = "on_hold_until", type = IType.NONE)
+})
 public class BDIPlan implements IValue {
 
 	private SimpleBdiPlanStatement planstatement;
 
-	@getter("name")
+	@getter ("name")
 	public String getName() {
 		return this.planstatement.getName();
 	}
-	
-	@getter("todo")
+
+	@getter ("todo")
 	public String getWhen() {
 		return this.planstatement._when.serialize(true);
 	}
-	
-	@getter(SimpleBdiArchitecture.FINISHEDWHEN)
+
+	@getter (SimpleBdiArchitecture.FINISHEDWHEN)
 	public String getFinishedWhen() {
 		return this.planstatement._executedwhen.serialize(true);
 	}
-	
-	@getter(SimpleBdiPlanStatement.INTENTION)
-	public Predicate getIntention() {
-		return (Predicate)this.planstatement._intention;
+
+	@getter (SimpleBdiPlanStatement.INTENTION)
+	public Predicate getIntention(final IScope scope) {
+		return (Predicate) this.planstatement._intention.value(scope);
 	}
-	
-	@getter(SimpleBdiArchitecture.INSTANTANEAOUS)
+
+	@getter (SimpleBdiArchitecture.INSTANTANEAOUS)
 	public String getInstantaneous() {
 		return this.planstatement._instantaneous.serialize(true);
 	}
-	
-	public SimpleBdiPlanStatement getPlanStatement(){
+
+	public SimpleBdiPlanStatement getPlanStatement() {
 		return this.planstatement;
 	}
-	
+
 	public BDIPlan() {
 		super();
 	}
@@ -86,15 +103,15 @@ public class BDIPlan implements IValue {
 	@Override
 	public String serialize(final boolean includingBuiltIn) {
 		return "BDIPlan(" + planstatement
-//				+(values == null ? "" : "," + values) +
-			+")";
+		// +(values == null ? "" : "," + values) +
+				+ ")";
 	}
 
 	@Override
 	public String stringValue(final IScope scope) throws GamaRuntimeException {
-		return "BDIPlan(" + planstatement  
-//				+(values == null ? "" : "," + values)
-				;
+		return "BDIPlan(" + planstatement
+		// +(values == null ? "" : "," + values)
+		;
 	}
 
 	@Override
@@ -103,11 +120,11 @@ public class BDIPlan implements IValue {
 	}
 
 	public boolean isSimilarName(final BDIPlan other) {
-		if ( this == other ) { return true; }
-		if ( other == null ) { return false; }
-		if ( planstatement == null ) {
-			if ( other.planstatement != null ) { return false; }
-		} else if ( !planstatement.equals(other.planstatement) ) { return false; }
+		if (this == other) { return true; }
+		if (other == null) { return false; }
+		if (planstatement == null) {
+			if (other.planstatement != null) { return false; }
+		} else if (!planstatement.equals(other.planstatement)) { return false; }
 		return true;
 	}
 
@@ -121,22 +138,23 @@ public class BDIPlan implements IValue {
 
 	@Override
 	public boolean equals(final Object obj) {
-		if ( this == obj ) { return true; }
-		if ( obj == null ) { return false; }
-		if ( getClass() != obj.getClass() ) { return false; }
-		BDIPlan other = (BDIPlan) obj;
-		if ( planstatement == null ) {
-			if ( other.planstatement != null ) { return false; }
-		} else if ( !planstatement.equals(other.planstatement) ) { return false; }
+		if (this == obj) { return true; }
+		if (obj == null) { return false; }
+		if (getClass() != obj.getClass()) { return false; }
+		final BDIPlan other = (BDIPlan) obj;
+		if (planstatement == null) {
+			if (other.planstatement != null) { return false; }
+		} else if (!planstatement.equals(other.planstatement)) { return false; }
 		return true;
 	}
 
 	/**
 	 * Method getType()
+	 * 
 	 * @see msi.gama.common.interfaces.ITyped#getType()
 	 */
 	@Override
-	public IType getType() {
+	public IType<?> getType() {
 		return Types.get(BDIPlanType.id);
 	}
 

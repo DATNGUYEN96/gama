@@ -1,3 +1,12 @@
+/*********************************************************************************************
+ *
+ * 'ChartJFreeChartOutputRadar.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and
+ * simulation platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.outputs.layers.charts;
 
 import java.awt.Point;
@@ -40,22 +49,21 @@ public class ChartJFreeChartOutputRadar extends ChartJFreeChartOutput {
 	}
 
 	@Override
-	public void setDefaultPropertiesFromType(final IScope scope, final ChartDataSource source, final Object o,
-			final int type_val) {
+	public void setDefaultPropertiesFromType(final IScope scope, final ChartDataSource source, final int type_val) {
 		// TODO Auto-generated method stub
 
 		switch (type_val) {
-		case ChartDataSource.DATA_TYPE_LIST_DOUBLE_N:
-		case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_N:
-		case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_12:
-		case ChartDataSource.DATA_TYPE_LIST_POINT:
-		case ChartDataSource.DATA_TYPE_MATRIX_DOUBLE:
-		case ChartDataSource.DATA_TYPE_LIST_DOUBLE_3:
-		case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_3:
-		default: {
-			source.setCumulative(scope, false); // never cumulative by default
-			source.setUseSize(scope, false);
-		}
+			case ChartDataSource.DATA_TYPE_LIST_DOUBLE_N:
+			case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_N:
+			case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_12:
+			case ChartDataSource.DATA_TYPE_LIST_POINT:
+			case ChartDataSource.DATA_TYPE_MATRIX_DOUBLE:
+			case ChartDataSource.DATA_TYPE_LIST_DOUBLE_3:
+			case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_3:
+			default: {
+				source.setCumulative(scope, false); // never cumulative by default
+				source.setUseSize(scope, false);
+			}
 		}
 
 	}
@@ -115,7 +123,8 @@ public class ChartJFreeChartOutputRadar extends ChartJFreeChartOutput {
 
 	@Override
 	protected void createNewSerie(final IScope scope, final String serieid) {
-		final ChartDataSeries dataserie = chartdataset.getDataSeries(scope, serieid);
+		// final ChartDataSeries dataserie = chartdataset.getDataSeries(scope,
+		// serieid);
 		// final XYIntervalSeries serie = new
 		// XYIntervalSeries(dataserie.getSerieLegend(scope), false, true);
 		final SpiderWebPlot plot = (SpiderWebPlot) this.chart.getPlot();
@@ -156,7 +165,7 @@ public class ChartJFreeChartOutputRadar extends ChartJFreeChartOutput {
 	protected void resetSerie(final IScope scope, final String serieid) {
 		// TODO Auto-generated method stub
 
-		final SpiderWebPlot plot = (SpiderWebPlot) this.chart.getPlot();
+		chart.getPlot();
 		final ChartDataSeries dataserie = chartdataset.getDataSeries(scope, serieid);
 		// DefaultCategoryDataset serie=((DefaultCategoryDataset)
 		// jfreedataset.get(IdPosition.get(dataserie.getSerieId(scope))));
@@ -187,19 +196,23 @@ public class ChartJFreeChartOutputRadar extends ChartJFreeChartOutput {
 
 	@Override
 	public void resetAxes(final IScope scope) {
+		if (this.series_label_position.equals("none")) 
+		{
+			(this.chart).getLegend().setVisible(false);
+		}
 
 	}
 
 	private void resetDomainAxis(final IScope scope) {
 		// TODO Auto-generated method stub
-		final SpiderWebPlot pp = (SpiderWebPlot) chart.getPlot();
+		chart.getPlot();
 
 	}
 
 	@Override
 	public void initChart(final IScope scope, final String chartname) {
 		super.initChart(scope, chartname);
-		final SpiderWebPlot pp = (SpiderWebPlot) chart.getPlot();
+		chart.getPlot();
 
 	}
 
@@ -209,16 +222,16 @@ public class ChartJFreeChartOutputRadar extends ChartJFreeChartOutput {
 		super.initChart_post_data_init(scope);
 		final SpiderWebPlot pp = (SpiderWebPlot) chart.getPlot();
 
-		final String sty = getStyle();
+		// final String sty = getStyle();
 		// this.useSubAxis=false;
-		switch (sty) {
-		default: {
-			if (this.series_label_position.equals("default")) {
-				this.series_label_position = "legend";
-			}
-			break;
+		// switch (sty) {
+		// default: {
+		if (this.series_label_position.equals("default")) {
+			this.series_label_position = "legend";
 		}
-		}
+		// break;
+		// }
+		// }
 		if (this.series_label_position.equals("xaxis")) {
 			// this.useSubAxis=true;
 		}
@@ -236,8 +249,7 @@ public class ChartJFreeChartOutputRadar extends ChartJFreeChartOutput {
 			pp.setLabelPaint(textColor);
 		}
 
-		if (ylabel != null && ylabel != "") {
-		}
+		if (ylabel != null && ylabel != "") {}
 		if (this.series_label_position.equals("yaxis")) {
 			// pp.getRangeAxis().setLabel(this.getChartdataset().getDataSeriesIds(scope).iterator().next());
 			chart.getLegend().setVisible(false);
@@ -259,22 +271,20 @@ public class ChartJFreeChartOutputRadar extends ChartJFreeChartOutput {
 	}
 
 	@Override
-	public String getModelCoordinatesInfo(final int xOnScreen, final int yOnScreen, final IDisplaySurface g,
-			final Point positionInPixels) {
+	public void getModelCoordinatesInfo(final int xOnScreen, final int yOnScreen, final IDisplaySurface g,
+			final Point positionInPixels, final StringBuilder sb) {
 		final int x = xOnScreen - positionInPixels.x;
 		final int y = yOnScreen - positionInPixels.y;
 		final ChartEntity entity = info.getEntityCollection().getEntity(x, y);
 		// getChart().handleClick(x, y, info);
 
-		final Comparable columnKey = ((CategoryItemEntity) entity).getColumnKey();
+		final Comparable<?> columnKey = ((CategoryItemEntity) entity).getColumnKey();
 		final String title = columnKey.toString();
 		final CategoryDataset data = ((CategoryItemEntity) entity).getDataset();
-		final Comparable rowKey = ((CategoryItemEntity) entity).getRowKey();
+		final Comparable<?> rowKey = ((CategoryItemEntity) entity).getRowKey();
 		final double xx = data.getValue(rowKey, columnKey).doubleValue();
-		final StringBuilder sb = new StringBuilder();
 		final boolean xInt = xx % 1 == 0;
 		sb.append(title).append(" ").append(xInt ? (int) xx : String.format("%.2f", xx));
-		return sb.toString();
 
 	}
 

@@ -1,24 +1,20 @@
 /*********************************************************************************************
  *
+ * 'IType.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform. (c)
+ * 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'IType.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.types;
 
 import java.util.Map;
 
-import msi.gama.common.interfaces.IGamlable;
+import msi.gama.common.interfaces.IGamlDescription;
 import msi.gama.common.interfaces.ITyped;
 import msi.gama.runtime.IScope;
-import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gaml.descriptions.IDescription;
-import msi.gaml.descriptions.IGamlDescription;
 import msi.gaml.descriptions.OperatorProto;
 import msi.gaml.descriptions.SpeciesDescription;
 import msi.gaml.expressions.IExpression;
@@ -29,7 +25,7 @@ import msi.gaml.expressions.IExpression;
  * @todo Description
  *
  */
-public interface IType<Support> extends IGamlDescription, ITyped, IGamlable {
+public interface IType<Support> extends IGamlDescription, ITyped {
 
 	public static String[] vowels = new String[] { "a", "e", "i", "o", "u", "y" };
 
@@ -59,24 +55,27 @@ public interface IType<Support> extends IGamlDescription, ITyped, IGamlable {
 	public static final int CONTAINER = 16;
 	public static final int PATH = 17;
 	public static final int TOPOLOGY = 18;
-
 	public static final int FONT = 19;
 	public static final int IMAGE = 20;
 	public final static int REGRESSION = 21;
 	public final static int SKILL = 22;
 	public final static int DATE = 23;
 	public final static int MESSAGE = 24;
+	public final static int MATERIAL = 25;
+	public final static int ACTION = 26;
+	public final static int ATTRIBUTES = 27;
+	// Represents the meta-type (type of values type)
+	public final static int TYPE = 28;
 	public final static int AVAILABLE_TYPES = 50;
 	public final static int SPECIES_TYPES = 100;
 
-	public Support cast(IScope scope, Object obj, Object param, boolean copy) throws GamaRuntimeException;
+	public Support cast(IScope scope, Object obj, Object param, boolean copy);
 
-	public Support cast(IScope scope, Object obj, Object param, IType keyType, IType contentType, boolean copy)
-			throws GamaRuntimeException;
+	public Support cast(IScope scope, Object obj, Object param, IType<?> keyType, IType<?> contentType, boolean copy);
 
 	public int id();
 
-	public Class<Support> toClass();
+	public Class<? extends Support> toClass();
 
 	public Support getDefault();
 
@@ -92,21 +91,21 @@ public interface IType<Support> extends IGamlDescription, ITyped, IGamlable {
 
 	public boolean isParametricType();
 
-	public boolean isParametricFormOf(final IType l);
+	public boolean isParametricFormOf(final IType<?> l);
 
 	public String getSpeciesName();
 
 	public SpeciesDescription getSpecies();
 
-	public boolean isAssignableFrom(IType l);
+	public boolean isAssignableFrom(IType<?> l);
 
-	public boolean isTranslatableInto(IType t);
+	public boolean isTranslatableInto(IType<?> t);
 
-	public void setParent(IType p);
+	public void setParent(IType<? super Support> p);
 
-	public IType getParent();
+	public IType<?> getParent();
 
-	IType coerce(IType expr, IDescription context);
+	IType<?> coerce(IType<?> expr, IDescription context);
 
 	/**
 	 * returns the distance between two types
@@ -114,7 +113,7 @@ public interface IType<Support> extends IGamlDescription, ITyped, IGamlable {
 	 * @param originalChildType
 	 * @return
 	 */
-	public int distanceTo(IType originalChildType);
+	public int distanceTo(IType<?> originalChildType);
 
 	/**
 	 * @param n
@@ -128,11 +127,11 @@ public interface IType<Support> extends IGamlDescription, ITyped, IGamlable {
 	 */
 	boolean canBeTypeOf(IScope s, Object c);
 
-	public void init(int varKind, final int id, final String name, final Class... supports);
+	public void init(int varKind, final int id, final String name, final Class<Support> clazz);
 
 	/**
-	 * Whether or not this type can be considered as having a contents. True for
-	 * all containers and special types (like rgb, species, etc.)
+	 * Whether or not this type can be considered as having a contents. True for all containers and special types (like
+	 * rgb, species, etc.)
 	 * 
 	 * @return
 	 */
@@ -153,26 +152,24 @@ public interface IType<Support> extends IGamlDescription, ITyped, IGamlable {
 	 * @param iType
 	 * @return
 	 */
-	public IType findCommonSupertypeWith(IType iType);
+	public IType<? super Support> findCommonSupertypeWith(IType<?> iType);
 
 	public boolean isParented();
 
-	public void setSupport(Class clazz);
+	public void setSupport(Class<Support> clazz);
 
 	/**
 	 * @param context
-	 *            When casting an expression, the type returned is usually that
-	 *            of this type. However, some types will compute another type
-	 *            based on the type of the expressoin to cast (for instance,
-	 *            species or agent)
+	 *            When casting an expression, the type returned is usually that of this type. However, some types will
+	 *            compute another type based on the type of the expressoin to cast (for instance, species or agent)
 	 * @param exp
 	 * @return
 	 */
-	public IType typeIfCasting(final IExpression exp);
+	public IType<?> typeIfCasting(final IExpression exp);
 
-	public IType getContentType();
+	public IType<?> getContentType();
 
-	public IType getKeyType();
+	public IType<?> getKeyType();
 
 	/**
 	 * @return
@@ -197,5 +194,16 @@ public interface IType<Support> extends IGamlDescription, ITyped, IGamlable {
 	 */
 	public boolean isDrawable();
 
-	public IType getWrappedType();
+	public IType<?> getWrappedType();
+
+	SpeciesDescription getDenotedSpecies();
+
+	/**
+	 * Denotes a type that has components which can be exctracted when casting it to a container (for instance, points
+	 * have float components). The inner type is returned by getContentType(). Containers are compound types by default
+	 * 
+	 * @return true if the type represents a compound value which components can be extracted
+	 */
+	public boolean isCompoundType();
+
 }

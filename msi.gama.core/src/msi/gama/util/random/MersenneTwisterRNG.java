@@ -1,12 +1,11 @@
 /*********************************************************************************************
  *
- *
- * 'MersenneTwisterRNG.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'MersenneTwisterRNG.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit http://gama-platform.org for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 // Copyright 2006-2010 Daniel W. Dyer
@@ -26,7 +25,6 @@
 package msi.gama.util.random;
 
 import msi.gama.common.util.RandomUtils;
-import msi.gaml.operators.fastmaths.CmnFastMath;
 
 /**
  * <p>
@@ -130,7 +128,7 @@ public class MersenneTwisterRNG extends GamaRNG {
 		// version.
 		int i = 1;
 		int j = 0;
-		for (int k = CmnFastMath.max(N, seedInts.length); k > 0; k--) {
+		for (int k = Math.max(N, seedInts.length); k > 0; k--) {
 			mt[i] = (mt[i] ^ (mt[i - 1] ^ mt[i - 1] >>> 30) * SEED_FACTOR1) + seedInts[j] + j;
 			i++;
 			j++;

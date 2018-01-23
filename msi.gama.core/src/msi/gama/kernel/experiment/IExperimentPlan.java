@@ -1,20 +1,16 @@
 /*********************************************************************************************
  *
+ * 'IExperimentPlan.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'IExperimentPlan.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.kernel.experiment;
 
-import java.util.List;
 import java.util.Map;
 
-import msi.gama.common.interfaces.ItemList;
 import msi.gama.kernel.batch.IExploration;
 import msi.gama.kernel.experiment.IParameter.Batch;
 import msi.gama.kernel.model.IModel;
@@ -33,6 +29,7 @@ import msi.gaml.species.ISpecies;
 public interface IExperimentPlan extends ISpecies {
 
 	static final String BATCH_CATEGORY_NAME = "Exploration method";
+	static final String TEST_CATEGORY_NAME = "Configuration of tests";
 	static final String EXPLORABLE_CATEGORY_NAME = "Parameters to explore";
 	static final String FIXED_CATEGORY_NAME = "Fixed parameters";
 	static final String SYSTEM_CATEGORY_PREFIX = "Random number generation";
@@ -41,27 +38,29 @@ public interface IExperimentPlan extends ISpecies {
 
 	public abstract void setModel(final IModel model);
 
-	public abstract List<IOutputManager> getAllSimulationOutputs();
-
 	public abstract IOutputManager getOriginalSimulationOutputs();
 
 	public abstract void refreshAllOutputs();
 
+	public abstract void pauseAllOutputs();
+
+	public abstract void resumeAllOutputs();
+
+	public abstract void synchronizeAllOutputs();
+
+	public abstract void unSynchronizeAllOutputs();
+
+	public abstract void closeAllOutputs();
+
 	public abstract IOutputManager getExperimentOutputs();
 
 	public abstract boolean isGui();
-
-	public boolean isMulticore();
-
-	public abstract ItemList getParametersEditors();
 
 	public abstract boolean hasParameter(String name);
 
 	public ExperimentAgent getAgent();
 
 	public abstract IScope getExperimentScope();
-
-	// public abstract ParametersSet getCurrentSolution();
 
 	public abstract void open();
 
@@ -96,6 +95,14 @@ public interface IExperimentPlan extends ISpecies {
 
 	public abstract boolean keepsSimulations();
 
-	// public abstract void setController(ExperimentController controller);
+	public abstract boolean hasParametersOrUserCommands();
+
+	public abstract void recomputeAndRefreshAllOutputs();
+
+	public abstract Iterable<IOutputManager> getActiveOutputManagers();
+
+	public abstract boolean isAutorun();
+
+	public abstract boolean isTest();
 
 }

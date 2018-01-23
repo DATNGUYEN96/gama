@@ -1,20 +1,22 @@
 /*********************************************************************************************
+ *
+ * 'Different.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * 
- * 'Different.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gama.metamodel.topology.filter;
 
 import java.util.Collection;
+
+import msi.gama.metamodel.agent.IAgent;
+import msi.gama.metamodel.population.IPopulation;
 import msi.gama.metamodel.shape.IShape;
 import msi.gama.runtime.IScope;
-import msi.gama.util.*;
+import msi.gama.util.GamaListFactory;
+import msi.gama.util.IContainer;
 import msi.gaml.species.ISpecies;
 
 public class Different implements IAgentFilter {
@@ -34,7 +36,7 @@ public class Different implements IAgentFilter {
 	 * @see msi.gama.metamodel.topology.filter.IAgentFilter#getShapes()
 	 */
 	@Override
-	public IContainer<?, ? extends IShape> getAgents(final IScope scope) {
+	public IContainer<?, ? extends IAgent> getAgents(final IScope scope) {
 		return GamaListFactory.create();
 	}
 
@@ -43,8 +45,14 @@ public class Different implements IAgentFilter {
 		return null;
 	}
 
+	@Override
+	public IPopulation<? extends IAgent> getPopulation(final IScope scope) {
+		return null;
+	}
+
 	/**
 	 * Method filter()
+	 * 
 	 * @see msi.gama.metamodel.topology.filter.IAgentFilter#filter(java.util.Collection)
 	 */
 	@Override

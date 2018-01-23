@@ -1,13 +1,11 @@
 /*********************************************************************************************
+ *
+ * 'Arguments.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
  *
- * 'Arguments.java', in plugin 'msi.gama.core', is part of the source code of the 
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
  **********************************************************************************************/
 package msi.gaml.statements;
 
@@ -21,31 +19,40 @@ public class Arguments extends Facets {
 	/*
 	 * The caller represents the agent in the context of which the arguments need to be evaluated.
 	 */
-	IAgent caller;
+	ThreadLocal<IAgent> caller = new ThreadLocal<>();
 
 	public Arguments() {}
 
 	public Arguments(final IAgent caller) {
-		this.caller = caller;
+		setCaller(caller);
 	}
 
 	public Arguments(final Arguments args) {
 		super(args);
-		this.caller = args.caller;
+		if (args != null)
+			setCaller(args.caller.get());
+	}
 
-		// for ( final Map.Entry<String, IExpressionDescription> entry : args.entrySet() ) {
-		// if ( entry != null ) {
-		// put(entry.getKey(), entry.getValue());
-		// }
-		// }
+	@Override
+	public Arguments cleanCopy() {
+		final Arguments result = new Arguments(this);
+		result.transformValues(cleanCopy);
+		result.compact();
+		return result;
 	}
 
 	public void setCaller(final IAgent caller) {
-		this.caller = caller;
+		this.caller.set(caller);
 	}
 
 	public IAgent getCaller() {
-		return caller;
+		return caller.get();
+	}
+
+	@Override
+	public void dispose() {
+		clear();
+		caller.set(null);
 	}
 
 }

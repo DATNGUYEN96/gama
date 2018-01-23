@@ -1,3 +1,13 @@
+/*********************************************************************************************
+ *
+ * 'CompositeGamaMessage.java, in plugin ummisco.gama.network, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package ummisco.gama.network.common;
 
 import msi.gama.extensions.messaging.GamaMessage;
@@ -18,7 +28,7 @@ public class CompositeGamaMessage extends GamaMessage {
 	public CompositeGamaMessage(IScope scope,GamaMessage message)
 	{
 		super(scope,message.getSender(),message.getReceivers(),message.getContents(scope));
-		this.contents = StreamConverter.convertObjectToStream(scope, (message.getContents(scope)));
+		this.contents = StreamConverter.convertNetworkObjectToStream(scope, (message.getContents(scope)));
 		this.emissionTimeStamp = message.getEmissionTimestamp();
 		this.setUnread(true);
 		deserializeContent=null;
@@ -35,7 +45,7 @@ public class CompositeGamaMessage extends GamaMessage {
 	public Object getContents(IScope scope) {
 		this.setUnread(false);
 		if(deserializeContent == null)
-			deserializeContent = StreamConverter.convertStreamToObject(scope, (String)contents);//StreamConverter.convertStreamToObject(scope, (String)(super.getContents(scope)));
+			deserializeContent = StreamConverter.convertNetworkStreamToObject(scope, (String)contents);//StreamConverter.convertStreamToObject(scope, (String)(super.getContents(scope)));
 		return deserializeContent; 
 	}
 }

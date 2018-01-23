@@ -1,3 +1,12 @@
+/*********************************************************************************************
+ *
+ * 'ChartJFreeChartOutputHistogram.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and
+ * simulation platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.outputs.layers.charts;
 
 import java.awt.Point;
@@ -6,6 +15,7 @@ import java.util.ArrayList;
 import org.apache.commons.lang.StringUtils;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
 import org.jfree.chart.axis.SubCategoryAxis;
@@ -14,7 +24,6 @@ import org.jfree.chart.entity.CategoryItemEntity;
 import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.PieSectionEntity;
 import org.jfree.chart.entity.XYItemEntity;
-import org.jfree.chart.labels.CategoryItemLabelGenerator;
 import org.jfree.chart.labels.ItemLabelAnchor;
 import org.jfree.chart.labels.ItemLabelPosition;
 import org.jfree.chart.labels.StandardCategoryItemLabelGenerator;
@@ -26,11 +35,16 @@ import org.jfree.chart.renderer.category.AbstractCategoryItemRenderer;
 import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.renderer.category.BarRenderer3D;
 import org.jfree.chart.renderer.category.CategoryItemRenderer;
+import org.jfree.chart.renderer.category.GradientBarPainter;
 import org.jfree.chart.renderer.category.LevelRenderer;
 import org.jfree.chart.renderer.category.ScatterRenderer;
 import org.jfree.chart.renderer.category.StackedAreaRenderer;
 import org.jfree.chart.renderer.category.StackedBarRenderer;
+import org.jfree.chart.renderer.category.StandardBarPainter;
 import org.jfree.chart.renderer.category.StatisticalLineAndShapeRenderer;
+import org.jfree.chart.renderer.xy.GradientXYBarPainter;
+import org.jfree.chart.renderer.xy.StandardXYBarPainter;
+import org.jfree.chart.renderer.xy.XYBarRenderer;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.Dataset;
@@ -40,13 +54,50 @@ import org.jfree.ui.TextAnchor;
 
 import msi.gama.common.interfaces.IDisplaySurface;
 import msi.gama.common.interfaces.IKeyword;
+import msi.gama.common.preferences.GamaPreferences;
+import msi.gama.common.preferences.IPreferenceChangeListener;
 import msi.gama.runtime.IScope;
+import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gaml.expressions.IExpression;
 
 public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 
 	boolean useSubAxis = false;
 	boolean useMainAxisLabel = true;
+
+	public static void enableFlatLook(final boolean flat) {
+		if (flat) {
+			BarRenderer.setDefaultBarPainter(new StandardBarPainter());
+			BarRenderer.setDefaultShadowsVisible(false);
+			XYBarRenderer.setDefaultBarPainter(new StandardXYBarPainter());
+			XYBarRenderer.setDefaultShadowsVisible(false);
+			StackedBarRenderer.setDefaultBarPainter(new StandardBarPainter());
+			StackedBarRenderer.setDefaultShadowsVisible(false);
+		} else {
+			BarRenderer.setDefaultBarPainter(new GradientBarPainter());
+			BarRenderer.setDefaultShadowsVisible(true);
+			XYBarRenderer.setDefaultBarPainter(new GradientXYBarPainter());
+			XYBarRenderer.setDefaultShadowsVisible(true);
+			StackedBarRenderer.setDefaultBarPainter(new GradientBarPainter());
+			StackedBarRenderer.setDefaultShadowsVisible(true);
+		}
+	}
+
+	static {
+		enableFlatLook(GamaPreferences.Displays.CHART_FLAT.getValue());
+		GamaPreferences.Displays.CHART_FLAT.addChangeListener(new IPreferenceChangeListener<Boolean>() {
+
+			@Override
+			public boolean beforeValueChange(final Boolean newValue) {
+				return true;
+			}
+
+			@Override
+			public void afterValueChange(final Boolean newValue) {
+				enableFlatLook(newValue);
+			}
+		});
+	}
 
 	public ChartJFreeChartOutputHistogram(final IScope scope, final String name, final IExpression typeexp) {
 		super(scope, name, typeexp);
@@ -82,27 +133,26 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 	}
 
 	@Override
-	public void setDefaultPropertiesFromType(final IScope scope, final ChartDataSource source, final Object o,
-			final int type_val) {
+	public void setDefaultPropertiesFromType(final IScope scope, final ChartDataSource source, final int type_val) {
 		// TODO Auto-generated method stub
 
 		switch (type_val) {
-		case ChartDataSource.DATA_TYPE_LIST_DOUBLE_N:
-		case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_N:
-		case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_12:
-		case ChartDataSource.DATA_TYPE_LIST_POINT:
-		case ChartDataSource.DATA_TYPE_MATRIX_DOUBLE:
-		case ChartDataSource.DATA_TYPE_LIST_DOUBLE_3:
-		case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_3: {
-			source.setCumulative(scope, false);
-			source.setUseSize(scope, false);
-			break;
+			case ChartDataSource.DATA_TYPE_LIST_DOUBLE_N:
+			case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_N:
+			case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_12:
+			case ChartDataSource.DATA_TYPE_LIST_POINT:
+			case ChartDataSource.DATA_TYPE_MATRIX_DOUBLE:
+			case ChartDataSource.DATA_TYPE_LIST_DOUBLE_3:
+			case ChartDataSource.DATA_TYPE_LIST_LIST_DOUBLE_3: {
+				source.setCumulative(scope, false);
+				source.setUseSize(scope, false);
+				break;
 
-		}
-		default: {
-			source.setCumulative(scope, false); // never cumulative by default
-			source.setUseSize(scope, false);
-		}
+			}
+			default: {
+				source.setCumulative(scope, false); // never cumulative by default
+				source.setUseSize(scope, false);
+			}
 		}
 
 	}
@@ -111,7 +161,7 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 		return new DefaultCategoryDataset();
 	}
 
-	static class LabelGenerator extends StandardCategoryItemLabelGenerator implements CategoryItemLabelGenerator {
+	static class LabelGenerator extends StandardCategoryItemLabelGenerator {
 		/**
 		 * Generates an item label.
 		 * 
@@ -135,39 +185,39 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 		final String style = this.getChartdataset().getDataSeries(scope, serieid).getStyle(scope);
 		AbstractRenderer newr = new BarRenderer();
 		switch (style) {
-		case IKeyword.STACK: {
-			newr = new StackedBarRenderer();
-			break;
+			case IKeyword.STACK: {
+				newr = new StackedBarRenderer();
+				break;
 
-		}
-		case IKeyword.THREE_D: {
-			newr = new BarRenderer3D();
-			break;
+			}
+			case IKeyword.THREE_D: {
+				newr = new BarRenderer3D();
+				break;
 
-		}
-		case IKeyword.DOT: {
-			newr = new ScatterRenderer();
-			break;
-		}
-		case IKeyword.AREA: {
-			newr = new StackedAreaRenderer();
-			break;
-		}
-		case IKeyword.LINE: {
-			newr = new StatisticalLineAndShapeRenderer();
-			break;
-		}
-		case IKeyword.STEP: {
-			newr = new LevelRenderer();
-			break;
-		}
-		case IKeyword.RING:
-		case IKeyword.EXPLODED:
-		default: {
-			newr = new BarRenderer();
-			break;
+			}
+			case IKeyword.DOT: {
+				newr = new ScatterRenderer();
+				break;
+			}
+			case IKeyword.AREA: {
+				newr = new StackedAreaRenderer();
+				break;
+			}
+			case IKeyword.LINE: {
+				newr = new StatisticalLineAndShapeRenderer();
+				break;
+			}
+			case IKeyword.STEP: {
+				newr = new LevelRenderer();
+				break;
+			}
+			case IKeyword.RING:
+			case IKeyword.EXPLODED:
+			default: {
+				newr = new BarRenderer();
+				break;
 
-		}
+			}
 		}
 		return newr;
 	}
@@ -196,8 +246,8 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 				// ((BarRenderer)newr).setBaseItemLabelGenerator(new
 				// LabelGenerator());
 				newr.setBaseItemLabelGenerator(new LabelGenerator());
-				final ItemLabelPosition itemlabelposition = new ItemLabelPosition(ItemLabelAnchor.OUTSIDE12,
-						TextAnchor.BOTTOM_CENTER);
+				final ItemLabelPosition itemlabelposition =
+						new ItemLabelPosition(ItemLabelAnchor.OUTSIDE12, TextAnchor.BOTTOM_CENTER);
 				newr.setBasePositiveItemLabelPosition(itemlabelposition);
 				newr.setBaseNegativeItemLabelPosition(itemlabelposition);
 				newr.setBaseItemLabelsVisible(true);
@@ -234,7 +284,8 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 
 	@Override
 	protected void createNewSerie(final IScope scope, final String serieid) {
-		final ChartDataSeries dataserie = chartdataset.getDataSeries(scope, serieid);
+		// final ChartDataSeries dataserie = chartdataset.getDataSeries(scope,
+		// serieid);
 		// final XYIntervalSeries serie = new
 		// XYIntervalSeries(dataserie.getSerieLegend(scope), false, true);
 		final CategoryPlot plot = (CategoryPlot) this.chart.getPlot();
@@ -287,11 +338,29 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 		final ArrayList<Double> SValues = dataserie.getSValues(scope);
 		if (CValues.size() > 0) {
 			// TODO Hack to speed up, change!!!
-			final CategoryAxis domainAxis = ((CategoryPlot) this.chart.getPlot()).getDomainAxis();
+			// final CategoryAxis domainAxis = ((CategoryPlot)
+			// this.chart.getPlot()).getDomainAxis();
 			final NumberAxis rangeAxis = (NumberAxis) ((CategoryPlot) this.chart.getPlot()).getRangeAxis();
 			rangeAxis.setAutoRange(false);
 			for (int i = 0; i < CValues.size(); i++) {
-				serie.addValue(YValues.get(i), serieid, CValues.get(i));
+				if (getY_LogScale(scope)) 
+				{
+					double val=YValues.get(i);
+					if (val<=0)
+					{
+						throw GamaRuntimeException.warning("Log scale with <=0 value:"+val, scope);
+					}
+					else
+					{
+						serie.addValue(YValues.get(i), serieid, CValues.get(i));						
+					}
+					
+				}
+				else
+				{
+					serie.addValue(YValues.get(i), serieid, CValues.get(i));
+					
+				}
 				// ((ExtendedCategoryAxis)domainAxis).addSubLabel(CValues.get(i),
 				// serieid);;
 			}
@@ -307,7 +376,15 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 
 	@Override
 	public void resetAxes(final IScope scope) {
-		final NumberAxis rangeAxis = (NumberAxis) ((CategoryPlot) this.chart.getPlot()).getRangeAxis();
+		final CategoryPlot pp= (CategoryPlot)this.chart.getPlot();
+		 NumberAxis rangeAxis = (NumberAxis) ((CategoryPlot) this.chart.getPlot()).getRangeAxis();
+		if (getY_LogScale(scope)) 
+		{
+			LogarithmicAxis logAxis = new LogarithmicAxis(rangeAxis.getLabel());
+			logAxis.setAllowNegativesFlag(true);
+		((CategoryPlot) this.chart.getPlot()).setRangeAxis(logAxis);
+		rangeAxis=logAxis;
+		}
 
 		if (!useyrangeinterval && !useyrangeminmax) {
 			rangeAxis.setAutoRange(true);
@@ -325,13 +402,61 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 		}
 
 		resetDomainAxis(scope);
+
 		final CategoryAxis domainAxis = ((CategoryPlot) this.chart.getPlot()).getDomainAxis();
 
+		pp.setDomainGridlinePaint(axesColor);
+		pp.setRangeGridlinePaint(axesColor);
+		pp.setRangeCrosshairVisible(true);
+
+		
+		pp.getRangeAxis().setAxisLinePaint(axesColor);
+		pp.getRangeAxis().setLabelFont(getLabelFont());
+		pp.getRangeAxis().setTickLabelFont(getTickFont());
+		if (textColor != null) {
+			pp.getRangeAxis().setLabelPaint(textColor);
+			pp.getRangeAxis().setTickLabelPaint(textColor);
+		}
+		if (getYTickUnit(scope) > 0) {
+			((NumberAxis) pp.getRangeAxis()).setTickUnit(new NumberTickUnit(getYTickUnit(scope)));
+		}
+
+		if (getYLabel(scope) != null && !getYLabel(scope).isEmpty()) {
+			pp.getRangeAxis().setLabel(getYLabel(scope));
+		}
+		if (this.series_label_position.equals("yaxis")) {
+			pp.getRangeAxis().setLabel(this.getChartdataset().getDataSeriesIds(scope).iterator().next());
+			chart.getLegend().setVisible(false);
+		}
+
+		if (getXLabel(scope) != null && !getXLabel(scope).isEmpty()) {
+			pp.getDomainAxis().setLabel(getXLabel(scope));
+		}
+
+		
+		
 		if (this.useSubAxis) {
 			for (final String serieid : chartdataset.getDataSeriesIds(scope)) {
 				((SubCategoryAxis) domainAxis).addSubCategory(serieid);
 			}
 
+		}
+		if (!this.getYTickLineVisible(scope))
+		{
+			pp.setDomainGridlinesVisible(false);
+		}
+
+			if (!this.getYTickLineVisible(scope))
+		{
+			pp.setRangeCrosshairVisible(false);
+			
+		}
+		
+		if (!this.getYTickValueVisible(scope))
+		{
+			pp.getRangeAxis().setTickMarksVisible(false);
+			pp.getRangeAxis().setTickLabelsVisible(false);
+			
 		}
 
 	}
@@ -365,13 +490,36 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 			// pp.getDomainAxis().setLabelFont(new Font(labelFontFace,
 			// labelFontStyle, 1));
 		}
+		if (!this.getYTickLineVisible(scope))
+		{
+			pp.setDomainGridlinesVisible(false);
+		}
+
+			if (!this.getYTickLineVisible(scope))
+		{
+			pp.setRangeCrosshairVisible(false);
+			
+		}
+		
+		if (!this.getYTickValueVisible(scope))
+		{
+			pp.getRangeAxis().setTickMarksVisible(false);
+			pp.getRangeAxis().setTickLabelsVisible(false);
+			
+		}
+		if (!this.getXTickValueVisible(scope))
+		{
+			pp.getDomainAxis().setTickMarksVisible(false);
+			pp.getDomainAxis().setTickLabelsVisible(false);
+			
+		}
 
 	}
 
 	@Override
 	public void initChart(final IScope scope, final String chartname) {
 		super.initChart(scope, chartname);
-		final CategoryPlot pp = (CategoryPlot) chart.getPlot();
+		// final CategoryPlot pp = (CategoryPlot) chart.getPlot();
 
 	}
 
@@ -384,33 +532,33 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 		final String sty = getStyle();
 		this.useSubAxis = false;
 		switch (sty) {
-		case IKeyword.STACK: {
-			if (this.series_label_position.equals("xaxis")) {
-				this.series_label_position = "default";
-			}
-			if (this.series_label_position.equals("default")) {
-				this.series_label_position = "legend";
-			}
-			break;
-		}
-		default: {
-			if (this.series_label_position.equals("default")) {
-				if (this.getChartdataset().getSources().size() > 0) {
-					final ChartDataSource onesource = this.getChartdataset().getSources().get(0);
-					if (onesource.isCumulative) {
-						this.series_label_position = "legend";
-					} else {
-						this.series_label_position = "xaxis";
-						useMainAxisLabel = false;
-					}
-
-				} else {
-					this.series_label_position = "legend";
-
+			case IKeyword.STACK: {
+				if (this.series_label_position.equals("xaxis")) {
+					this.series_label_position = "default";
 				}
+				if (this.series_label_position.equals("default")) {
+					this.series_label_position = "legend";
+				}
+				break;
 			}
-			break;
-		}
+			default: {
+				if (this.series_label_position.equals("default")) {
+					if (this.getChartdataset().getSources().size() > 0) {
+						final ChartDataSource onesource = this.getChartdataset().getSources().get(0);
+						if (onesource.isCumulative) {
+							this.series_label_position = "legend";
+						} else {
+							this.series_label_position = "xaxis";
+							useMainAxisLabel = false;
+						}
+
+					} else {
+						this.series_label_position = "legend";
+
+					}
+				}
+				break;
+			}
 		}
 		if (this.series_label_position.equals("xaxis")) {
 			this.useSubAxis = true;
@@ -424,8 +572,15 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 
 		pp.setDomainGridlinePaint(axesColor);
 		pp.setRangeGridlinePaint(axesColor);
+		if (!this.getXTickLineVisible(scope))
+		{
+			pp.setDomainGridlinesVisible(false);
+		}
+		if (!this.getYTickLineVisible(scope))
+		{
+			pp.setRangeGridlinesVisible(false);
+		}
 		pp.setRangeCrosshairVisible(true);
-
 		pp.getRangeAxis().setAxisLinePaint(axesColor);
 		pp.getRangeAxis().setLabelFont(getLabelFont());
 		pp.getRangeAxis().setTickLabelFont(getTickFont());
@@ -437,7 +592,7 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 			((NumberAxis) pp.getRangeAxis()).setTickUnit(new NumberTickUnit(ytickunit));
 		}
 
-		if (ylabel != null && ylabel != "") {
+		if (ylabel != null && !ylabel.isEmpty()) {
 			pp.getRangeAxis().setLabel(ylabel);
 		}
 		if (this.series_label_position.equals("yaxis")) {
@@ -445,7 +600,7 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 			chart.getLegend().setVisible(false);
 		}
 
-		if (xlabel != null && xlabel != "") {
+		if (xlabel != null && !xlabel.isEmpty()) {
 			pp.getDomainAxis().setLabel(xlabel);
 		}
 
@@ -453,6 +608,9 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 
 	@Override
 	protected void initRenderer(final IScope scope) {
+		// final CategoryPlot pp = (CategoryPlot) chart.getPlot();
+		// final BarRenderer renderer = (BarRenderer) pp.getRenderer();
+
 		// TODO Auto-generated method stub
 		// CategoryPlot plot = (CategoryPlot)this.chart.getPlot();
 		// defaultrenderer = new BarRenderer();
@@ -461,8 +619,8 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 	}
 
 	@Override
-	public String getModelCoordinatesInfo(final int xOnScreen, final int yOnScreen, final IDisplaySurface g,
-			final Point positionInPixels) {
+	public void getModelCoordinatesInfo(final int xOnScreen, final int yOnScreen, final IDisplaySurface g,
+			final Point positionInPixels, final StringBuilder sb) {
 		final int x = xOnScreen - positionInPixels.x;
 		final int y = yOnScreen - positionInPixels.y;
 		final ChartEntity entity = info.getEntityCollection().getEntity(x, y);
@@ -486,31 +644,27 @@ public class ChartJFreeChartOutputHistogram extends ChartJFreeChartOutput {
 			if (StringUtils.isBlank(yTitle)) {
 				yTitle = "Y";
 			}
-			final StringBuilder sb = new StringBuilder();
 			sb.append(xTitle).append(" ").append(xInt ? (int) xx : String.format("%.2f", xx));
 			sb.append(" | ").append(yTitle).append(" ").append(yInt ? (int) yy : String.format("%.2f", yy));
-			return sb.toString();
+			return;
 		} else if (entity instanceof PieSectionEntity) {
 			final String title = ((PieSectionEntity) entity).getSectionKey().toString();
 			final PieDataset data = ((PieSectionEntity) entity).getDataset();
 			final int index = ((PieSectionEntity) entity).getSectionIndex();
 			final double xx = data.getValue(index).doubleValue();
-			final StringBuilder sb = new StringBuilder();
 			final boolean xInt = xx % 1 == 0;
 			sb.append(title).append(" ").append(xInt ? (int) xx : String.format("%.2f", xx));
-			return sb.toString();
+			return;
 		} else if (entity instanceof CategoryItemEntity) {
-			final Comparable columnKey = ((CategoryItemEntity) entity).getColumnKey();
+			final Comparable<?> columnKey = ((CategoryItemEntity) entity).getColumnKey();
 			final String title = columnKey.toString();
 			final CategoryDataset data = ((CategoryItemEntity) entity).getDataset();
-			final Comparable rowKey = ((CategoryItemEntity) entity).getRowKey();
+			final Comparable<?> rowKey = ((CategoryItemEntity) entity).getRowKey();
 			final double xx = data.getValue(rowKey, columnKey).doubleValue();
-			final StringBuilder sb = new StringBuilder();
 			final boolean xInt = xx % 1 == 0;
 			sb.append(title).append(" ").append(xInt ? (int) xx : String.format("%.2f", xx));
-			return sb.toString();
+			return;
 		}
-		return "";
 	}
 
 }

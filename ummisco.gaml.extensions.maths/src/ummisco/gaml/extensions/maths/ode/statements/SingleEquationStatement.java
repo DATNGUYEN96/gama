@@ -1,12 +1,11 @@
 /*********************************************************************************************
  *
- *
- * 'SingleEquationStatement.java', in plugin 'ummisco.gaml.extensions.maths', is part of the source code of the
+ * 'SingleEquationStatement.java, in plugin ummisco.gaml.extensions.maths, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package ummisco.gaml.extensions.maths.ode.statements;
@@ -86,25 +85,26 @@ import ummisco.gaml.extensions.maths.ode.statements.SingleEquationStatement.Sing
 				@example(value = "   diff(S,t) = (- 0.3 * S * I / 100);", isExecutable = false),
 				@example(value = "   diff(I,t) = (0.3 * S * I / 100);", isExecutable = false),
 				@example(value = "} ", isExecutable = false) }) }, see = { EQUATION, SOLVE })
+@SuppressWarnings({ "rawtypes" })
 public class SingleEquationStatement extends AbstractStatement {
 
-	public static final Map<String, Integer> orderNames = new TOrderedHashMap();
+	public static final Map<String, Integer> orderNames = new TOrderedHashMap<>();
 	static {
 		orderNames.put(ZERO, 0);
 		orderNames.put(DIFF, 1);
 		orderNames.put(DIF2, 2);
 	}
 
-	public static class SIngleEquationSerializer extends SymbolSerializer {
+	public static class SIngleEquationSerializer extends SymbolSerializer<SymbolDescription> {
 
 		@Override
 		protected void serialize(final SymbolDescription desc, final StringBuilder sb, final boolean includingBuiltIn) {
-			sb.append(desc.getFacets().get(LEFT).serialize(includingBuiltIn)).append(" = ")
-					.append(desc.getFacets().get(RIGHT).serialize(includingBuiltIn)).append(";");
+			sb.append(desc.getFacet(EQUATION_LEFT).serialize(includingBuiltIn)).append(" = ")
+					.append(desc.getFacet(EQUATION_RIGHT).serialize(includingBuiltIn)).append(";");
 		}
 	}
 
-	public static class SingleEquationValidator implements IDescriptionValidator {
+	public static class SingleEquationValidator implements IDescriptionValidator<IDescription> {
 
 		/**
 		 * Method validate()
@@ -114,9 +114,9 @@ public class SingleEquationStatement extends AbstractStatement {
 		@Override
 		public void validate(final IDescription d) {
 
-			final IExpressionDescription fDesc = d.getFacets().get(EQUATION_LEFT);
+			final IExpressionDescription fDesc = d.getFacet(EQUATION_LEFT);
 			final IExpression func = fDesc.getExpression();
-			final IExpressionDescription eDesc = d.getFacets().get(EQUATION_RIGHT);
+			final IExpressionDescription eDesc = d.getFacet(EQUATION_RIGHT);
 			final IExpression expr = eDesc.getExpression();
 			final boolean isFunction = func instanceof IOperator && orderNames.containsKey(func.getName());
 			if (!isFunction) {
@@ -125,14 +125,14 @@ public class SingleEquationStatement extends AbstractStatement {
 				return;
 			}
 
-			final IType type = ((IOperator) func).arg(0).getType();
+			final IType<?> type = ((IOperator) func).arg(0).getType();
 			if (!type.isTranslatableInto(Types.FLOAT)) {
 				d.error("The variable of the left-hand member of an equation is expected to be of type float",
 						IGamlIssue.WRONG_TYPE, fDesc.getTarget());
 				return;
 			}
 
-			if (!expr.getType().isTranslatableInto(Types.FLOAT)) {
+			if (expr == null || !expr.getType().isTranslatableInto(Types.FLOAT)) {
 				d.error("The right-hand member of an equation is expected to be of type float", IGamlIssue.WRONG_TYPE,
 						eDesc.getTarget());
 			}
@@ -234,13 +234,15 @@ public class SingleEquationStatement extends AbstractStatement {
 	// whenever they are called.
 
 	@operator(value = DIFF, concept = { IConcept.EQUATION,
-			IConcept.MATH }, doc = @doc("A placeholder function for expressing equations"))
+			IConcept.MATH })
+	@doc(value = "A placeholder function for expressing equations")
 	public static Double diff(final IScope scope, final Double var, final Double time) {
 		return Double.NaN;
 	}
 
 	@operator(value = DIF2, concept = { IConcept.EQUATION,
-			IConcept.MATH }, doc = @doc("A placeholder function for expressing equations"))
+			IConcept.MATH })
+	@doc(value = "A placeholder function for expressing equations")
 	public static Double diff2(final IScope scope, final Double var, final Double time) {
 		return Double.NaN;
 	}
@@ -255,14 +257,14 @@ public class SingleEquationStatement extends AbstractStatement {
 	 * @return
 	 */
 	@operator(value = ZERO, concept = { IConcept.EQUATION,
-			IConcept.MATH }, doc = @doc("An internal placeholder function"))
+			IConcept.MATH })
+	@doc(value = "An internal placeholder function")
 	public static Double f(final IScope scope, final IExpression var) {
 		return Double.NaN;
 	}
 
 	@Override
 	public String toString() {
-		// TODO Auto-generated method stub
 		return function.toString() + " = " + expression.toString();
 	}
 

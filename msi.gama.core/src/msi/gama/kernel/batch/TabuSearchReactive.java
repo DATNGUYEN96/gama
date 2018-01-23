@@ -1,12 +1,11 @@
 /*********************************************************************************************
  *
- *
- * 'TabuSearchReactive.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'TabuSearchReactive.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.kernel.batch;
@@ -204,11 +203,6 @@ public class TabuSearchReactive extends LocalSearchAlgorithm {
 					bestNeighbor = neighborSol;
 					bestFitnessAlgo = neighborFitness;
 				}
-				if ( isMaximize() && currentFitness > getBestFitness() ||
-					!isMaximize() && currentFitness < getBestFitness() ) {
-					setBestSolution(new ParametersSet(bestSolutionAlgo));
-					setBestFitness(currentFitness);
-				}
 				nbIt++;
 				if ( nbIt > iterMax ) {
 					break;
@@ -245,11 +239,6 @@ public class TabuSearchReactive extends LocalSearchAlgorithm {
 					}
 					currentFitness = currentExperiment.launchSimulationsWithSolution(bestSolutionAlgo);
 					testedSolutions.put(bestSolutionAlgo, currentFitness);
-					if ( isMaximize() && currentFitness > getBestFitness() ||
-						!isMaximize() && currentFitness < getBestFitness() ) {
-						setBestSolution(new ParametersSet(bestSolutionAlgo));
-						setBestFitness(currentFitness);
-					}
 					if ( nbIt > iterMax ) {
 						break;
 					}

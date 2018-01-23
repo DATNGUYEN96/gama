@@ -1,23 +1,28 @@
 /*********************************************************************************************
  *
+ * 'SpeciesConstantExpression.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and
+ * simulation platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'SpeciesConstantExpression.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.expressions;
 
+import msi.gama.kernel.model.IModel;
 import msi.gama.metamodel.agent.IAgent;
 import msi.gama.metamodel.population.IPopulation;
 import msi.gama.precompiler.GamlProperties;
 import msi.gama.runtime.IScope;
-import msi.gaml.descriptions.*;
+import msi.gama.util.ICollector;
+import msi.gaml.descriptions.IDescription;
+import msi.gaml.descriptions.ModelDescription;
+import msi.gaml.descriptions.SpeciesDescription;
+import msi.gaml.descriptions.TypeDescription;
+import msi.gaml.descriptions.VariableDescription;
 import msi.gaml.types.IType;
 
+@SuppressWarnings ({ "rawtypes" })
 public class SpeciesConstantExpression extends ConstantExpression {
 
 	public SpeciesConstantExpression(final String string, final IType t) {
@@ -26,21 +31,22 @@ public class SpeciesConstantExpression extends ConstantExpression {
 
 	@Override
 	public Object value(final IScope scope) {
-		IAgent a = scope.getAgentScope();
-		if ( a != null ) {
-			// hqnghi if main description contains micro-description then species comes from micro-model
-			ModelDescription micro = this.getType().getContentType().getSpecies().getModelDescription();
-			ModelDescription main = (ModelDescription) scope.getModel().getDescription();
-			Boolean fromMicroModel = main.getMicroModel(micro.getAlias()) != null;
-			if ( !fromMicroModel ) {
-				IPopulation pop = scope.getAgentScope().getPopulationFor((String) value);
-				if ( pop != null ) { return pop.getSpecies(); }
-				return scope.getSimulationScope().getModel().getSpecies((String) value);
+		final IAgent a = scope.getAgent();
+		if (a != null) {
+			// hqnghi if main description contains micro-description then
+			// species comes from micro-model
+			final IModel m = scope.getModel();
+			final ModelDescription micro = this.getType().getContentType().getSpecies().getModelDescription();
+			final ModelDescription main = m == null ? null : (ModelDescription) scope.getModel().getDescription();
+			final Boolean fromMicroModel = main == null || main.getMicroModel(micro.getAlias()) != null;
+			if (!fromMicroModel) {
+				final IPopulation pop = scope.getAgent().getPopulationFor((String) value);
+				if (pop != null) { return pop.getSpecies(); }
+				return scope.getModel().getSpecies((String) value);
 			} else {
-				IPopulation pop = scope.getRoot().getExternMicroPopulationFor((String) micro.getAlias()+"."+value);
-				if ( pop != null ) { return pop.getSpecies(); }
-				return scope.getSimulationScope().getModel().getSpecies((String) value,
-					this.getType().getContentType().getSpecies());
+				final IPopulation pop = scope.getRoot().getExternMicroPopulationFor(micro.getAlias() + "." + value);
+				if (pop != null) { return pop.getSpecies(); }
+				return scope.getModel().getSpecies((String) value, this.getType().getContentType().getSpecies());
 			}
 			// end-hqnghi
 		}
@@ -65,17 +71,24 @@ public class SpeciesConstantExpression extends ConstantExpression {
 
 	/**
 	 * Method collectPlugins()
-	 * @see msi.gaml.descriptions.IGamlDescription#collectPlugins(java.util.Set)
+	 * 
+	 * @see msi.gama.common.interfaces.IGamlDescription#collectPlugins(java.util.Set)
 	 */
 	@Override
 	public void collectMetaInformation(final GamlProperties meta) {
-		SpeciesDescription sd = getType().getContentType().getSpecies();
-		if ( sd != null ) {
+		final SpeciesDescription sd = getType().getContentType().getSpecies();
+		if (sd != null) {
 			meta.put(GamlProperties.PLUGINS, sd.getDefiningPlugin());
-			if ( sd.isBuiltIn() ) {
-				meta.put(GamlProperties.SPECIES, name);
+			if (sd.isBuiltIn()) {
+				meta.put(GamlProperties.SPECIES, (String) value);
 			}
 		}
+	}
+
+	@Override
+	public void collectUsedVarsOf(final IDescription species, final ICollector<VariableDescription> result) {
+		if (species.hasAttribute(value.toString()))
+			result.add(((TypeDescription) species).getAttribute(value.toString()));
 	}
 
 }

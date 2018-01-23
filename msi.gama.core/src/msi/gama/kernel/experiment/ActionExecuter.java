@@ -1,12 +1,11 @@
 /*********************************************************************************************
  *
- *
- * 'ActionExecuter.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'ActionExecuter.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.kernel.experiment;
@@ -24,7 +23,7 @@ public class ActionExecuter {
 	private static final int DISPOSE = 2;
 	private static final int ONE_SHOT = 3;
 
-	final List<IExecutable>[] actions = new List[4];
+	@SuppressWarnings("unchecked") final List<IExecutable>[] actions = new List[4];
 	protected final IScope scope;
 
 	public ActionExecuter(final IScope scope) {
@@ -49,7 +48,7 @@ public class ActionExecuter {
 	private IExecutable insertAction(final IExecutable action, final int type) {
 		List<IExecutable> list = actions[type];
 		if (list == null) {
-			list = new ArrayList();
+			list = new ArrayList<>();
 			actions[type] = list;
 		}
 		if (list.add(action)) {

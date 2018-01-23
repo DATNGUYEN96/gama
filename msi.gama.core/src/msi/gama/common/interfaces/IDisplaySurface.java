@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'IDisplaySurface.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'IDisplaySurface.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.common.interfaces;
@@ -17,16 +15,15 @@ import java.util.Collection;
 
 import com.vividsolutions.jts.geom.Envelope;
 
+import msi.gama.common.geometry.Envelope3D;
 // import msi.gama.common.interfaces.IDisplaySurface.IZoomListener;
 import msi.gama.metamodel.agent.IAgent;
-import msi.gama.metamodel.shape.Envelope3D;
 import msi.gama.metamodel.shape.ILocation;
 import msi.gama.metamodel.shape.IShape;
 import msi.gama.outputs.LayeredDisplayData;
 import msi.gama.outputs.LayeredDisplayData.DisplayDataListener;
 import msi.gama.outputs.LayeredDisplayOutput;
 import msi.gama.outputs.layers.IEventLayerListener;
-import msi.gama.runtime.IScope;
 import msi.gaml.statements.draw.DrawingAttributes;
 
 /**
@@ -35,25 +32,19 @@ import msi.gaml.statements.draw.DrawingAttributes;
  * @todo Description
  *
  */
-public interface IDisplaySurface extends
-		DisplayDataListener /* extends IPerspectiveListener, IPartListener */ {
+public interface IDisplaySurface extends DisplayDataListener, IScoped {
 
 	static final String SNAPSHOT_FOLDER_NAME = "snapshots";
 	static final double MIN_ZOOM_FACTOR = 0.1;
-	static final int MAX_ZOOM_FACTOR = 4;
+	static final int MAX_ZOOM_FACTOR = 10;
 
 	public interface OpenGL extends IDisplaySurface {
-
-		/**
-		 * @return the position of the camera
-		 */
-		ILocation getCameraPosition();
 
 		Envelope3D getROIDimensions();
 
 		void setPaused(boolean flag);
 
-		void selectAgent(DrawingAttributes attributes);
+		void selectAgent(final DrawingAttributes attributes);
 
 		void selectionIn(Envelope3D env);
 
@@ -67,8 +58,7 @@ public interface IDisplaySurface extends
 	void dispose();
 
 	/**
-	 * Asks the surface to update its display, optionnaly forcing it to do so
-	 * (if it is paused, for instance)
+	 * Asks the surface to update its display, optionnaly forcing it to do so (if it is paused, for instance)
 	 **/
 	void updateDisplay(boolean force);
 
@@ -137,8 +127,6 @@ public interface IDisplaySurface extends
 
 	void setSize(int x, int y);
 
-	IScope getDisplayScope();
-
 	LayeredDisplayOutput getOutput();
 
 	LayeredDisplayData getData();
@@ -156,14 +144,12 @@ public interface IDisplaySurface extends
 	int getFPS();
 
 	/**
-	 * @return true if the surface is considered as "realized" (i.e. displayed
-	 *         on the UI)
+	 * @return true if the surface is considered as "realized" (i.e. displayed on the UI)
 	 */
 	boolean isRealized();
 
 	/**
-	 * @return true if the surface has been "rendered" (i.e. all the layers have
-	 *         been displayed)
+	 * @return true if the surface has been "rendered" (i.e. all the layers have been displayed)
 	 */
 	boolean isRendered();
 
@@ -175,7 +161,7 @@ public interface IDisplaySurface extends
 	/**
 	 * @return
 	 */
-	String getModelCoordinatesInfo();
+	void getModelCoordinatesInfo(StringBuilder receiver);
 
 	void dispatchKeyEvent(char character);
 

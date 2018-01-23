@@ -1,49 +1,60 @@
 /*********************************************************************************************
  *
+ * 'HeadlessListener.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'HeadlessListener.java', in plugin 'msi.gama.headless', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.runtime;
 
-import java.awt.Color;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.resources.IResource;
 
+import msi.gama.common.interfaces.IConsoleDisplayer;
 import msi.gama.common.interfaces.IDisplayCreator;
 import msi.gama.common.interfaces.IDisplayCreator.DisplayDescription;
 import msi.gama.common.interfaces.IDisplaySurface;
-import msi.gama.common.interfaces.IEditorFactory;
 import msi.gama.common.interfaces.IGamaView;
-import msi.gama.common.util.AbstractGui;
+import msi.gama.common.interfaces.IGamlLabelProvider;
+import msi.gama.common.interfaces.IGui;
+import msi.gama.common.interfaces.IStatusDisplayer;
 import msi.gama.kernel.experiment.IExperimentPlan;
 import msi.gama.kernel.experiment.ITopLevelAgent;
 import msi.gama.kernel.model.IModel;
 import msi.gama.kernel.simulation.SimulationAgent;
 import msi.gama.metamodel.agent.IAgent;
+import msi.gama.metamodel.shape.GamaPoint;
+import msi.gama.metamodel.shape.ILocation;
+import msi.gama.metamodel.shape.IShape;
 import msi.gama.outputs.IDisplayOutput;
 import msi.gama.outputs.LayeredDisplayOutput;
 import msi.gama.outputs.display.NullDisplaySurface;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gama.util.GamaColor;
 import msi.gama.util.file.IFileMetaDataProvider;
+import msi.gama.util.file.IGamaFileMetaData;
 import msi.gaml.architecture.user.UserPanelStatement;
+import msi.gaml.compilation.ast.ISyntacticElement;
+import msi.gaml.operators.Strings;
+import msi.gaml.statements.test.CompoundSummary;
+import msi.gaml.statements.test.TestExperimentSummary;
 import msi.gaml.types.IType;
 
-public class HeadlessListener extends AbstractGui {
+public class HeadlessListener implements IGui {
 
 	static Logger LOGGER = LogManager.getLogManager().getLogger("");
+	static Level LEVEL = Level.ALL;
+	final ThreadLocal<BufferedWriter> outputWriter = new ThreadLocal<BufferedWriter>();
 
 	static {
 
@@ -53,29 +64,35 @@ public class HeadlessListener extends AbstractGui {
 				h.setLevel(Level.ALL);
 			}
 			LOGGER.setLevel(Level.ALL);
-			// Handler h = new ConsoleHandler();
-			// h.setLevel(Level.ALL);
-			// LOGGER.addHandler(h);
-			// System.out.println("Configuring Headless Mode");
-			// System.out.println("Configuring Headless Mode");
-
 		}
 		GAMA.setHeadlessGui(new HeadlessListener());
 	}
 
+	private static void log(final String s) {
+		System.out.println(s);
+	}
+
 	@Override
 	public Map<String, Object> openUserInputDialog(final IScope scope, final String title,
-			final Map<String, Object> initialValues, final Map<String, IType> types) {
-		return null;
+			final Map<String, Object> initialValues, final Map<String, IType<?>> types) {
+		return initialValues;
+	}
+
+	public void registerJob(final BufferedWriter w) {
+		this.outputWriter.set(w);
+	}
+
+	public BufferedWriter leaveJob() {
+		final BufferedWriter res = this.outputWriter.get();
+		this.outputWriter.remove();
+		return res;
 	}
 
 	@Override
-	public void openUserControlPanel(final IScope scope, final UserPanelStatement panel) {
-	}
+	public void openUserControlPanel(final IScope scope, final UserPanelStatement panel) {}
 
 	@Override
-	public void closeDialogs() {
-	}
+	public void closeDialogs(final IScope scope) {}
 
 	@Override
 	public IAgent getHighlightedAgent() {
@@ -83,86 +100,34 @@ public class HeadlessListener extends AbstractGui {
 	}
 
 	@Override
-	public void setHighlightedAgent(final IAgent a) {
-	}
+	public void setHighlightedAgent(final IAgent a) {}
 
 	@Override
-	public void setStatus(final String error, final int code) {
-	}
-
-	@Override
-	public void run(final Runnable block) {
-		block.run();
-	}
-
-	@Override
-	public void asyncRun(final Runnable block) {
-		block.run();
-	}
-
-	@Override
-	public void raise(final Throwable ex) {
-		System.out.println("Error: " + ex.getMessage());
-		// System.out.println("Error: " + ex.getMessage());
-	}
-
-	@Override
-	public IGamaView showView(final String viewId, final String name, final int code) {
+	public IGamaView showView(final IScope scope, final String viewId, final String name, final int code) {
 		return null;
 	}
 
 	@Override
 	public void tell(final String message) {
-		System.out.println("Message: " + message);
-		// System.out.println("Message: " + message);
+		log("Message: " + message);
 	}
 
 	@Override
 	public void error(final String error) {
-		// System.out.println("Error: " + error);
-		System.out.println("Error: " + error);
-
+		log("Error: " + error);
 	}
 
 	@Override
-	public void showParameterView(final IExperimentPlan exp) {
-	}
-
-	@Override
-	public void debugConsole(final int cycle, final String s, final ITopLevelAgent root) {
-		System.out.println("Debug (step " + cycle + "): " + s);
-		// System.out.println("Debug (step " + cycle + "): " + s);
-	}
-
-	@Override
-	public void informConsole(final String s, final ITopLevelAgent root) {
-		System.out.println("Information: " + s);
-		// System.out.println("Information: " + s);
-	}
-
-	// @Override
-	// public void updateViewOf(final IDisplayOutput output) {}
+	public void showParameterView(final IScope scope, final IExperimentPlan exp) {}
 
 	@Override
 	public void debug(final String string) {
-		System.out.println("Debug: " + string);
+		log("Debug: " + string);
 	}
 
 	@Override
-	public void warn(final String string) {
-		System.out.println("Warning: " + string);
-		// System.out.println("Warning: " + string);
-	}
-
-	@Override
-	public void runtimeError(final GamaRuntimeException g) {
-		System.out.println("Runtime error: " + g.getMessage());
-		// System.out.println("Runtime error: " + g.getMessage());
-	}
-
-	@Override
-	public IEditorFactory getEditorFactory() {
-		return null;
+	public void runtimeError(final IScope scope, final GamaRuntimeException g) {
+		log("Runtime error: " + g.getMessage());
 	}
 
 	@Override
@@ -171,51 +136,14 @@ public class HeadlessListener extends AbstractGui {
 	}
 
 	@Override
-	public void prepareForExperiment(final IExperimentPlan exp) {
-	}
-
-	@Override
-	public void showConsoleView(final ITopLevelAgent agent) {
-	}
-
-	@Override
-	public void setWorkbenchWindowTitle(final String string) {
-	}
-
-	//
-	// @Override
-	// public void closeViewOf(final IDisplayOutput out) {}
-
-	@Override
-	public IGamaView hideView(final String viewId) {
-		return null;
-	}
-
-	@Override
-	public boolean isModelingPerspective() {
-		return true;
-	}
-
-	@Override
-	public boolean openModelingPerspective(final boolean immediately) {
-		return false;
-	}
-
-	@Override
-	public boolean isSimulationPerspective() {
-		return true;
-	}
-
-	@Override
-	public void togglePerspective(final boolean immediately) {
-	}
+	public void prepareForExperiment(final IScope scope, final IExperimentPlan exp) {}
 
 	@Override
 	public boolean openSimulationPerspective(final IModel model, final String id, final boolean immediately) {
 		return true;
 	}
 
-	static Map<String, Class> displayClasses = null;
+	@SuppressWarnings ("rawtypes") static Map<String, Class> displayClasses = null;
 
 	@Override
 	public IDisplaySurface getDisplaySurfaceFor(final LayeredDisplayOutput output) {
@@ -227,52 +155,33 @@ public class HeadlessListener extends AbstractGui {
 			surface.outputReloaded();
 		} else {
 			return new NullDisplaySurface();
-			// throw GamaRuntimeException.error("Display " + keyword + " is not
-			// defined anywhere.", scope);
 		}
 		return surface;
 	}
 
 	@Override
-	public void editModel(final Object eObject) {
+	public void editModel(final IScope scope, final Object eObject) {}
+
+	@Override
+	public void updateParameterView(final IScope scope, final IExperimentPlan exp) {}
+
+	@Override
+	public void setSelectedAgent(final IAgent a) {}
+
+	@Override
+	public void cleanAfterExperiment(final IScope scope) {
+		// System.out.println("[Headless] Clean after experiment.");
+		try {
+			outputWriter.get().flush();
+			outputWriter.get().close();
+		} catch (final IOException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 	@Override
-	public void updateParameterView(final IExperimentPlan exp) {
-	}
-
-	//
-	// @Override
-	// public void cycleDisplayViews(final Set<String> names) {}
-
-	@Override
-	public void setSelectedAgent(final IAgent a) {
-	}
-
-	@Override
-	public void cleanAfterExperiment(final IExperimentPlan exp) {
-	}
-
-	@Override
-	public void prepareForSimulation(final SimulationAgent agent) {
-	}
-
-	@Override
-	public void cleanAfterSimulation() {
-	}
-	//
-	// @Override
-	// public void waitForViewsToBeInitialized() {
-	// }
-
-	@Override
-	public void debug(final Exception e) {
-		e.printStackTrace();
-	}
-
-	@Override
-	public void runModel(final Object object, final String exp) throws CoreException {
-	}
+	public void runModel(final Object object, final String exp) {}
 
 	/**
 	 * Method updateSpeedDisplay()
@@ -280,75 +189,7 @@ public class HeadlessListener extends AbstractGui {
 	 * @see msi.gama.common.interfaces.IGui#updateSpeedDisplay(java.lang.Double)
 	 */
 	@Override
-	public void updateSpeedDisplay(final Double d, final boolean notify) {
-	}
-
-	/**
-	 * Method beginSubStatus()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#beginSubStatus(java.lang.String)
-	 */
-	@Override
-	public void beginSubStatus(final String name) {
-	}
-
-	/**
-	 * Method endSubStatus()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#endSubStatus(java.lang.String)
-	 */
-	@Override
-	public void endSubStatus(final String name) {
-	}
-
-	/**
-	 * Method setSubStatusCompletion()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#setSubStatusCompletion(double)
-	 */
-	@Override
-	public void setSubStatusCompletion(final double status) {
-	}
-
-	/**
-	 * Method getName()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#getName()
-	 */
-	@Override
-	public String getName() {
-		return "Headless";
-	}
-
-	/**
-	 * Method setStatus()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#setStatus(java.lang.String,
-	 *      msi.gama.util.GamaColor)
-	 */
-	@Override
-	public void setStatusInternal(final String msg, final GamaColor color) {
-		System.out.println(msg);
-	}
-
-	/**
-	 * Method resumeStatus()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#resumeStatus()
-	 */
-	@Override
-	public void resumeStatus() {
-	}
-
-	/**
-	 * Method findView()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#findView(msi.gama.outputs.IDisplayOutput)
-	 */
-	@Override
-	public IGamaView findView(final IDisplayOutput output) {
-		return null;
-	}
+	public void updateSpeedDisplay(final IScope scope, final Double d, final boolean notify) {}
 
 	/**
 	 * Method getMetaDataProvider()
@@ -357,7 +198,55 @@ public class HeadlessListener extends AbstractGui {
 	 */
 	@Override
 	public IFileMetaDataProvider getMetaDataProvider() {
-		return null;
+		return new IFileMetaDataProvider() {
+
+			@Override
+			public void storeMetaData(final IResource file, final IGamaFileMetaData data, final boolean immediately) {}
+
+			@Override
+			public IGamaFileMetaData getMetaData(final Object element, final boolean includeOutdated,
+					final boolean immediately) {
+				return new IGamaFileMetaData() {
+
+					@Override
+					public boolean hasFailed() {
+						return false;
+					}
+
+					@Override
+					public String toPropertyString() {
+						return "";
+					}
+
+					@Override
+					public void setModificationStamp(final long modificationStamp) {}
+
+					@Override
+					public Object getThumbnail() {
+						return "";
+					}
+
+					@Override
+					public String getSuffix() {
+						return "";
+					}
+
+					@Override
+					public void appendSuffix(final StringBuilder sb) {}
+
+					@Override
+					public long getModificationStamp() {
+						return 0;
+					}
+
+					@Override
+					public String getDocumentation() {
+						return "";
+					}
+				};
+			}
+
+		};
 	}
 
 	/**
@@ -366,8 +255,8 @@ public class HeadlessListener extends AbstractGui {
 	 * @see msi.gama.common.interfaces.IGui#closeSimulationViews(boolean)
 	 */
 	@Override
-	public void closeSimulationViews(final boolean andOpenModelingPerspective, final boolean immediately) {
-	}
+	public void closeSimulationViews(final IScope scope, final boolean andOpenModelingPerspective,
+			final boolean immediately) {}
 
 	/**
 	 * Method getDisplayDescriptionFor()
@@ -376,152 +265,216 @@ public class HeadlessListener extends AbstractGui {
 	 */
 	@Override
 	public DisplayDescription getDisplayDescriptionFor(final String name) {
-		return null;
+		return new DisplayDescription(null, "display", "msi.gama.core");
 	}
 
 	/**
 	 * Method getFrontmostSimulationState()
 	 * 
-	 * @see msi.gama.common.interfaces.IGui#getFrontmostSimulationState()
+	 * @see msi.gama.common.interfaces.IGui#getExperimentState()
 	 */
 	@Override
-	public String getFrontmostSimulationState() {
+	public String getExperimentState(final String uid) {
 		return RUNNING; // ???
 	}
 
 	/**
 	 * Method updateSimulationState()
 	 * 
-	 * @see msi.gama.common.interfaces.IGui#updateSimulationState(java.lang.String)
+	 * @see msi.gama.common.interfaces.IGui#updateExperimentState(java.lang.String)
 	 */
 	@Override
-	public void updateSimulationState(final String state) {
-	}
+	public void updateExperimentState(final IScope scope, final String state) {}
 
 	/**
 	 * Method updateSimulationState()
 	 * 
-	 * @see msi.gama.common.interfaces.IGui#updateSimulationState()
+	 * @see msi.gama.common.interfaces.IGui#updateExperimentState()
 	 */
 	@Override
-	public void updateSimulationState() {
+	public void updateExperimentState(final IScope scope) {}
+
+	@Override
+	public boolean openSimulationPerspective(final boolean immediately) {
+		return true;
 	}
 
-	/**
-	 * Method runModel()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#runModel(msi.gama.kernel.model.IModel,
-	 *      java.lang.String)
-	 */
 	@Override
-	public void runModel(final IModel object, final String exp) {
+	public void updateViewTitle(final IDisplayOutput output, final SimulationAgent agent) {}
+
+	@Override
+	public void openWelcomePage(final boolean b) {}
+
+	@Override
+	public void updateDecorator(final String string) {}
+
+	IStatusDisplayer status = new IStatusDisplayer() {
+
+		@Override
+		public void resumeStatus() {}
+
+		@Override
+		public void waitStatus(final String string) {}
+
+		@Override
+		public void informStatus(final String string) {}
+
+		@Override
+		public void errorStatus(final String message) {}
+
+		@Override
+		public void setSubStatusCompletion(final double status) {}
+
+		@Override
+		public void setStatus(final String msg, final GamaColor color) {}
+
+		@Override
+		public void informStatus(final String message, final String icon) {}
+
+		@Override
+		public void setStatus(final String msg, final String icon) {}
+
+		@Override
+		public void beginSubStatus(final String name) {}
+
+		@Override
+		public void endSubStatus(final String name) {}
+
+		@Override
+		public void neutralStatus(final String string) {}
+
+	};
+
+	IConsoleDisplayer console = new IConsoleDisplayer() {
+
+		@Override
+		public void debugConsole(final int cycle, final String s, final ITopLevelAgent root, final GamaColor color) {
+			debug(s);
+		}
+
+		@Override
+		public void debugConsole(final int cycle, final String s, final ITopLevelAgent root) {
+			debug(s);
+		}
+
+		@Override
+		public void informConsole(final String s, final ITopLevelAgent root, final GamaColor color) {
+			informConsole(s, root);
+		}
+
+		@Override
+		public void informConsole(final String s, final ITopLevelAgent root) {
+			System.out.println(s);
+			if (outputWriter.get() != null) {
+				try {
+					outputWriter.get().write(s + Strings.LN);
+					// outputWriter.get().flush();
+				} catch (final IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		@Override
+		public void showConsoleView(final ITopLevelAgent agent) {}
+
+		@Override
+		public void eraseConsole(final boolean setToNull) {}
+
+	};
+
+	@Override
+	public IStatusDisplayer getStatus(final IScope scope) {
+		return status;
 	}
 
-	/**
-	 * Method eraseConsole()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#eraseConsole(boolean)
-	 */
 	@Override
-	public void eraseConsole(final boolean b) {
+	public IConsoleDisplayer getConsole(final IScope scope) {
+		return console;
 	}
 
-	/**
-	 * Method debugConsole()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#debugConsole(int, java.lang.String,
-	 *      msi.gama.metamodel.agent.IMacroAgent, msi.gama.util.GamaColor)
-	 */
 	@Override
-	public void debugConsole(final int cycle, final String s, final ITopLevelAgent root, final GamaColor color) {
-		this.debugConsole(cycle, s, root);
+	public void clearErrors(final IScope scope) {}
+
+	@Override
+	public void run(final IScope scope, final Runnable opener) {
+		if (opener != null)
+			opener.run();
 	}
 
-	/**
-	 * Method informConsole()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#informConsole(java.lang.String,
-	 *      msi.gama.metamodel.agent.IMacroAgent, msi.gama.util.GamaColor)
-	 */
 	@Override
-	public void informConsole(final String s, final ITopLevelAgent root, final GamaColor color) {
-		this.informConsole(s, root);
+	public void setFocusOn(final IShape o) {}
+
+	@Override
+	public void applyLayout(final IScope scope, final int layout) {}
+
+	@Override
+	public void displayErrors(final IScope scope, final List<GamaRuntimeException> list) {}
+
+	@Override
+	public ILocation getMouseLocationInModel() {
+		return new GamaPoint(0, 0);
 	}
 
-	/**
-	 * Method getColorForSimulationNumber()
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#getColorForSimulationNumber(int)
-	 */
 	@Override
-	public GamaColor getColorForSimulationNumber(final int index) {
-		return new GamaColor(Color.BLACK);
+	public void setMouseLocationInModel(final ILocation modelCoordinates) {}
+
+	@Override
+	public IGamlLabelProvider getGamlLabelProvider() {
+		return new IGamlLabelProvider() {
+
+			@Override
+			public String getText(final ISyntacticElement element) {
+				return "";
+			}
+
+			@Override
+			public Object getImage(final ISyntacticElement element) {
+				return null;
+			}
+		};
 	}
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see msi.gama.common.interfaces.IGui#setStatusInternal(java.lang.String,
-	 * msi.gama.util.GamaColor, java.lang.String)
-	 */
 	@Override
-	public void setStatusInternal(final String msg, final GamaColor color, final String icon) {
-		System.out.println(msg);
+	public void exit() {
+		System.exit(0);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see msi.gama.common.interfaces.IGui#setStatus(java.lang.String,
-	 * java.lang.String)
-	 */
 	@Override
-	public void setStatus(final String msg, final String icon) {
-		System.out.println(msg);
-	}
+	public void openInteractiveConsole(final IScope scope) {}
 
-	/*
-	 * (non-Javadoc)
-	 *
-	 * @see msi.gama.common.interfaces.IGui#registerView(java.lang.String,
-	 * java.lang.String, java.lang.String)
-	 */
 	@Override
-	public void registerView(final String modelName, final String expeName, final String name) {
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see msi.gama.common.interfaces.IGui#getViews(java.lang.String,
-	 * java.lang.String)
-	 */
-	@Override
-	public Set<String> getViews(final String modelName, final String expeName) {
+	public IGamaView.Test openTestView(final IScope scope, final boolean remainOpen) {
+		// final String pathToFile = scope.getModel().getFilePath().replace(scope.getModel().getWorkingPath(), "");
+		// log("----------------------------------------------------------------");
+		// log(" Running tests declared in " + pathToFile);
+		// log("----------------------------------------------------------------");
 		return null;
 	}
 
 	@Override
-	public boolean openSimulationPerspective(final boolean immediately) {
+	public void displayTestsResults(final IScope scope, final CompoundSummary<?, ?> summary) {
+		log(summary.toString());
+	}
+
+	@Override
+	public List<TestExperimentSummary> runHeadlessTests(final Object model) {
+		return null;
+	}
+
+	@Override
+	public void endTestDisplay() {}
+
+	@Override
+	public boolean toggleFullScreenMode() {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public void applyLayout(final int layout) {
+	public void refreshNavigator() {
 		// TODO Auto-generated method stub
 
 	}
 
-	@Override
-	public void updateViewTitle(final IDisplayOutput output, final SimulationAgent agent) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public IGamaView getInteractiveConsole() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }

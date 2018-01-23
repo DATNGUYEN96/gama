@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'EventLayer.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'EventLayer.java', in plugin 'msi.gama.application', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs.layers;
@@ -20,15 +18,9 @@ import msi.gama.metamodel.shape.ILocation;
 import msi.gama.runtime.GAMA;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
-import msi.gama.util.GamaListFactory;
-import msi.gama.util.IContainer;
-import msi.gaml.descriptions.ConstantExpressionDescription;
 import msi.gaml.expressions.IExpression;
 import msi.gaml.operators.Cast;
-import msi.gaml.statements.Arguments;
 import msi.gaml.statements.IExecutable;
-import msi.gaml.statements.IStatement;
-import msi.gaml.types.Types;
 
 /**
  * Written by marilleau
@@ -36,21 +28,11 @@ import msi.gaml.types.Types;
 
 public class EventLayer extends AbstractLayer {
 
-	@Override
-	protected void setPositionAndSize(final IDisplayLayerBox box, final IGraphics g) {
-		super.setPositionAndSize(box, g);
-	}
-
 	EventListener listener;
-	private final String pointArg, listArg;
-	IScope scope;
+	IScope executionScope;
 
 	public EventLayer(final ILayerStatement layer) {
 		super(layer);
-		IExpression exp = layer.getFacet(EventLayerStatement.defaultPointArg);
-		pointArg = exp == null ? null : exp.literalValue();
-		exp = layer.getFacet(EventLayerStatement.defaultListArg);
-		listArg = exp == null ? null : exp.literalValue();
 	}
 
 	@Override
@@ -69,10 +51,12 @@ public class EventLayer extends AbstractLayer {
 		super.firstLaunchOn(surface);
 		final IExpression eventType = definition.getFacet(IKeyword.NAME);
 		final IExpression actionName = definition.getFacet(IKeyword.ACTION);
-		scope = surface.getDisplayScope().copy("of EventLayer");
+		executionScope = surface.getScope().copy("of EventLayer");
 
-		final String currentEvent = Cast.asString(scope, eventType.value(scope));
-		final String currentAction = Cast.asString(scope, actionName.value(scope));
+		// Evaluated in the display surface scope to gather variables defined in
+		// there
+		final String currentEvent = Cast.asString(surface.getScope(), eventType.value(surface.getScope()));
+		final String currentAction = Cast.asString(surface.getScope(), actionName.value(surface.getScope()));
 
 		listener = new EventListener(surface, currentEvent, currentAction);
 		surface.addListener(listener);
@@ -114,18 +98,13 @@ public class EventLayer extends AbstractLayer {
 		private final static int KEY_PRESSED = 3;
 
 		private final int listenedEvent;
-		private final IStatement.WithArgs executer;
 		private final IDisplaySurface surface;
-		private final String event;
+		private final String event, actionName;
 
 		public EventListener(final IDisplaySurface display, final String event, final String action) {
+			actionName = action;
 			this.event = event;
 			listenedEvent = getListeningEvent(event);
-			IAgent a = display.getDisplayScope().getSimulationScope();
-			if (a == null) {
-				a = display.getDisplayScope().getExperiment();
-			}
-			executer = a.getSpecies().getAction(action);
 			surface = display;
 		}
 
@@ -133,25 +112,13 @@ public class EventLayer extends AbstractLayer {
 			surface.removeListener(this);
 		}
 
-		public int getListeningEvent(final String eventTypeName) {
-			if (eventTypeName.equals(IKeyword.MOUSE_DOWN)) {
-				return MOUSE_PRESS;
-			}
-			if (eventTypeName.equals(IKeyword.MOUSE_UP)) {
-				return MOUSE_RELEASED;
-			}
-			if (eventTypeName.equals(IKeyword.MOUSE_CLICKED)) {
-				return MOUSE_CLICKED;
-			}
-			if (eventTypeName.equals(IKeyword.MOUSE_MOVED)) {
-				return MOUSE_MOVED;
-			}
-			if (eventTypeName.equals(IKeyword.MOUSE_ENTERED)) {
-				return MOUSE_ENTERED;
-			}
-			if (eventTypeName.equals(IKeyword.MOUSE_EXITED)) {
-				return MOUSE_EXITED;
-			}
+		private int getListeningEvent(final String eventTypeName) {
+			if (eventTypeName.equals(IKeyword.MOUSE_DOWN)) { return MOUSE_PRESS; }
+			if (eventTypeName.equals(IKeyword.MOUSE_UP)) { return MOUSE_RELEASED; }
+			if (eventTypeName.equals(IKeyword.MOUSE_CLICKED)) { return MOUSE_CLICKED; }
+			if (eventTypeName.equals(IKeyword.MOUSE_MOVED)) { return MOUSE_MOVED; }
+			if (eventTypeName.equals(IKeyword.MOUSE_ENTERED)) { return MOUSE_ENTERED; }
+			if (eventTypeName.equals(IKeyword.MOUSE_EXITED)) { return MOUSE_EXITED; }
 			return KEY_PRESSED;
 		}
 
@@ -198,48 +165,17 @@ public class EventLayer extends AbstractLayer {
 		}
 
 		private void executeEvent(final int x, final int y) {
-			if (executer == null) {
-				return;
-			}
+			final IAgent agent = ((EventLayerStatement) definition).executesInSimulation()
+					? executionScope.getSimulation() : executionScope.getExperiment();
+			final IExecutable executer = agent == null ? null : agent.getSpecies().getAction(actionName);
+			if (executer == null) { return; }
 			final ILocation pp = getModelCoordinatesFrom(x, y, surface);
-			if (pp == null) {
-				return;
-			}
+			if (pp == null) { return; }
 			if (pp.getX() < 0 || pp.getY() < 0 || pp.getX() >= surface.getEnvWidth()
 					|| pp.getY() >= surface.getEnvHeight()) {
-				if (MOUSE_EXITED == listenedEvent) {
-					executeEvent(x, y);
-				}
-				return;
+				if (MOUSE_EXITED != listenedEvent) { return; }
 			}
-			final Arguments args = new Arguments();
-			if (x > -1 && y > -1) {
-				if (pointArg != null) {
-					args.put(pointArg, ConstantExpressionDescription.create(new GamaPoint(pp.getX(), pp.getY())));
-				}
-				if (listArg != null && listenedEvent != MOUSE_MOVED && listenedEvent != MOUSE_ENTERED
-						&& listenedEvent != MOUSE_EXITED) {
-					final IContainer<Integer, IAgent> agentset = GamaListFactory.createWithoutCasting(Types.AGENT,
-							surface.selectAgent(x, y));
-					args.put(listArg, ConstantExpressionDescription.create(agentset));
-				}
-			}
-			GAMA.runAndUpdateAll(new Runnable() {
-
-				@Override
-				public void run() {
-
-					scope.getSimulationScope().executeAction(new IExecutable() {
-
-						@Override
-						public Object executeOn(final IScope scope) {
-							executer.setRuntimeArgs(args);
-							executer.executeOn(scope);
-							return null;
-						}
-					});
-				}
-			});
+			GAMA.runAndUpdateAll(() -> executionScope.execute(executer, agent, null));
 
 		}
 
@@ -257,8 +193,7 @@ public class EventLayer extends AbstractLayer {
 	}
 
 	@Override
-	protected void privateDrawDisplay(final IScope scope, final IGraphics g) throws GamaRuntimeException {
-	}
+	protected void privateDrawDisplay(final IScope scope, final IGraphics g) throws GamaRuntimeException {}
 
 	@Override
 	public void drawDisplay(final IScope scope, final IGraphics g) throws GamaRuntimeException {

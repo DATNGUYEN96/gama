@@ -1,12 +1,11 @@
 /*********************************************************************************************
  *
- *
- * 'TempVariableExpression.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'TempVariableExpression.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.expressions;
@@ -15,12 +14,14 @@ import msi.gama.precompiler.GamlProperties;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gama.util.GAML;
+import msi.gama.util.ICollector;
 import msi.gaml.descriptions.IDescription;
+import msi.gaml.descriptions.VariableDescription;
 import msi.gaml.types.IType;
 
 public class TempVariableExpression extends VariableExpression {
 
-	protected TempVariableExpression(final String n, final IType type, final IDescription definitionDescription) {
+	protected TempVariableExpression(final String n, final IType<?> type, final IDescription definitionDescription) {
 		super(n, type, false, definitionDescription);
 	}
 
@@ -31,8 +32,8 @@ public class TempVariableExpression extends VariableExpression {
 
 	@Override
 	public void setVal(final IScope scope, final Object v, final boolean create) throws GamaRuntimeException {
-		Object val = type.cast(scope, v, null, false);
-		if ( create ) {
+		final Object val = type.cast(scope, v, null, false);
+		if (create) {
 			scope.addVarWithValue(getName(), val);
 		} else {
 			scope.setVarValue(getName(), val);
@@ -49,9 +50,9 @@ public class TempVariableExpression extends VariableExpression {
 	 */
 	@Override
 	public String getDocumentation() {
-		IDescription desc = getDefinitionDescription();
-		return "temporary variable " + getName() + " of type " + getType().getTitle() +
-			(desc == null ? "<br>Built In" : "<br>Defined in " + desc.getTitle());
+		final IDescription desc = getDefinitionDescription();
+		return "temporary variable " + getName() + " of type " + getType().getTitle()
+				+ (desc == null ? "<br>Built In" : "<br>Defined in " + desc.getTitle());
 	}
 
 	@Override
@@ -61,8 +62,14 @@ public class TempVariableExpression extends VariableExpression {
 
 	/**
 	 * Method collectPlugins()
-	 * @see msi.gaml.descriptions.IGamlDescription#collectPlugins(java.util.Set)
+	 * 
+	 * @see msi.gama.common.interfaces.IGamlDescription#collectPlugins(java.util.Set)
 	 */
 	@Override
-	public void collectMetaInformation(final GamlProperties meta) {}
+	public void collectMetaInformation(final GamlProperties meta) {
+	}
+
+	@Override
+	public void collectUsedVarsOf(final IDescription species, final ICollector<VariableDescription> result) {
+	}
 }

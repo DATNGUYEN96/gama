@@ -1,20 +1,22 @@
 /*********************************************************************************************
+ *
+ * '_Vertex.java, in plugin msi.gama.core, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
  *
- * '_Vertex.java', in plugin 'msi.gama.core', is part of the source code of the 
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
  **********************************************************************************************/
 package msi.gama.util.graph;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.jgrapht.WeightedGraph;
 import org.jgrapht.util.ArrayUnenforcedSet;
 
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class _Vertex<E, V> extends GraphObject<GamaGraph<E, V>, E, V> {
 
 	Set inEdges = new ArrayUnenforcedSet(1);
@@ -61,18 +63,20 @@ public class _Vertex<E, V> extends GraphObject<GamaGraph<E, V>, E, V> {
 	}
 
 	public Object edgeTo(final Object v2) {
-		for ( Object e : outEdges ) {
-			_Edge<V, E> edge = (_Edge<V, E>) graph.edgeMap.get(e);
-			if ( edge.getTarget().equals(v2) ) { return e; }
+		for (final Object e : outEdges) {
+			final _Edge<V, E> edge = (_Edge<V, E>) graph.edgeMap.get(e);
+			if (edge.getTarget().equals(v2)) {
+				return e;
+			}
 		}
 		return null;
 	}
 
 	public Set edgesTo(final Object v2) {
-		Set result = new HashSet();
-		for ( Object e : outEdges ) {
-			_Edge<V, E> edge = (_Edge<V, E>) graph.edgeMap.get(e);
-			if ( edge.getTarget().equals(v2) ) {
+		final Set result = new HashSet();
+		for (final Object e : outEdges) {
+			final _Edge<V, E> edge = (_Edge<V, E>) graph.edgeMap.get(e);
+			if (edge.getTarget().equals(v2)) {
 				result.add(e);
 			}
 		}
@@ -80,7 +84,7 @@ public class _Vertex<E, V> extends GraphObject<GamaGraph<E, V>, E, V> {
 	}
 
 	public Set getEdges() {
-		Set result = new HashSet(inEdges);
+		final Set result = new HashSet(inEdges);
 		result.addAll(outEdges);
 		return result;
 	}

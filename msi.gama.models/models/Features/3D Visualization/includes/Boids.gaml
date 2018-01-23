@@ -10,7 +10,7 @@ model boids
 global torus: torus_environment{ 
 	
 	//Variable to represent the number of boids to create
-	int number_of_agents <- 10 min: 1 max: 1000000;
+	int number_of_agents <- 100 min: 1 max: 1000000;
 	//Variable to represent the number of obstacles to create
 	int number_of_obstacles <- 5 min: 0;
 	//Variable to represent the maximal speed of the boids agents
@@ -34,7 +34,7 @@ global torus: torus_environment{
 	bool moving_obstacles <- false;   
 	
 	//Bounds of the environment
-	int bounds <- int(width_and_height_of_environment / 20) depends_on: [width_and_height_of_environment]; 
+	int bounds <- int(width_and_height_of_environment / 20) ; 
 	//Vector to represent the direction of the wind
 	point wind_vector <- {0,0}; 
 	
@@ -46,13 +46,13 @@ global torus: torus_environment{
 	list images of: image_file <- [file('../images/bird1.png'),file('../images/bird2.png'),file('../images/bird3.png')]; 
 	
 	//Determine the bounding rectangle of the environment
-	int xmin <- bounds depends_on: [bounds];    
-	int ymin <- bounds depends_on: [bounds];  
+	int xmin <- bounds ;      
+	int ymin <- bounds ;  
 	int xmax <- (width_and_height_of_environment - bounds);     
 	int ymax <- (width_and_height_of_environment - bounds);   
 
 	geometry shape <- square(width_and_height_of_environment);
-	init { 
+	init {  
 		create boids number: number_of_agents { 
 			 location <- {rnd (width_and_height_of_environment - 2) + 1, rnd (width_and_height_of_environment -2) + 1 };
 		} 
@@ -73,7 +73,7 @@ species boids_goal skills: [moving] {
 	float size  <- 10.0;
 	
 	reflex wander {  
-		do  wander amplitude: 45 speed: 20;  
+		do  wander amplitude: 45 speed: 20.0;  
 		goal <- location;
 	}
 	
@@ -216,7 +216,7 @@ experiment Boids_gui type: gui {
 	parameter 'Direction of the wind' var: wind_vector ;  
 	
 	output {
-		display Sky
+		display Sky type: opengl
 		{
 			image 'background' file:'../images/sky.jpg';
 			species boids aspect: image;

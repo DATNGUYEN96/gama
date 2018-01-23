@@ -1,12 +1,11 @@
 /*********************************************************************************************
  *
- *
- * 'StatementFactory.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'StatementFactory.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.factories;
@@ -18,10 +17,12 @@ import org.eclipse.emf.ecore.EObject;
 import msi.gama.common.interfaces.IKeyword;
 import msi.gama.precompiler.GamlAnnotations.factory;
 import msi.gama.precompiler.ISymbolKind;
+import msi.gaml.descriptions.ActionDescription;
 import msi.gaml.descriptions.IDescription;
 import msi.gaml.descriptions.PrimitiveDescription;
 import msi.gaml.descriptions.StatementDescription;
-import msi.gaml.descriptions.StatementDescription.StatementWithChildrenDescription;
+import msi.gaml.descriptions.StatementRemoteWithChildrenDescription;
+import msi.gaml.descriptions.StatementWithChildrenDescription;
 import msi.gaml.descriptions.SymbolProto;
 import msi.gaml.statements.Facets;
 
@@ -41,20 +42,20 @@ public class StatementFactory extends SymbolFactory implements IKeyword {
 
 	@Override
 	protected StatementDescription buildDescription(final String keyword, final Facets facets, final EObject element,
-			final ChildrenProvider children, final IDescription enclosing, final SymbolProto proto,
-			final String plugin) {
-		if (keyword.equals(PRIMITIVE)) {
-			//
-			return new PrimitiveDescription(keyword, enclosing, children, proto.hasScope(), proto.hasArgs(), element,
-					facets, null);
-			//
+			final Iterable<IDescription> children, final IDescription enclosing, final SymbolProto proto) {
+		if (proto.isPrimitive()) {
+			return new PrimitiveDescription(enclosing, element, children, facets, null);
 		}
-		if (DescriptionFactory.getProto(keyword, enclosing).hasSequence() && children.hasChildren()) {
-			return new StatementWithChildrenDescription(keyword, enclosing, children, proto.hasScope(), proto.hasArgs(),
-					element, facets);
+		if (keyword.equals(ACTION))
+			return new ActionDescription(keyword, enclosing, children, element, facets);
+		if (proto.hasSequence() && children != null) {
+			if (proto.isRemoteContext())
+				return new StatementRemoteWithChildrenDescription(keyword, enclosing, children, proto.hasArgs(),
+						element, facets, null);
+			return new StatementWithChildrenDescription(keyword, enclosing, children, proto.hasArgs(), element, facets,
+					null);
 		}
-		return new StatementDescription(keyword, enclosing, children, proto.hasScope(), proto.hasArgs(), element,
-				facets);
+		return new StatementDescription(keyword, enclosing, proto.hasArgs(), /* children, */ element, facets, null);
 	}
 
 }

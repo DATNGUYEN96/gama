@@ -1,21 +1,25 @@
 /*********************************************************************************************
  *
- *
- * 'IGrid.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'IGrid.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.metamodel.topology.grid;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import msi.gama.metamodel.agent.IAgent;
 import msi.gama.metamodel.population.IPopulation;
-import msi.gama.metamodel.shape.*;
-import msi.gama.metamodel.topology.*;
+import msi.gama.metamodel.shape.ILocation;
+import msi.gama.metamodel.shape.IShape;
+import msi.gama.metamodel.topology.ISpatialIndex;
+import msi.gama.metamodel.topology.ITopology;
 import msi.gama.metamodel.topology.filter.IAgentFilter;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
@@ -40,29 +44,32 @@ public interface IGrid extends IMatrix<IShape>, ISpatialIndex {
 	public abstract List<IAgent> getAgents();
 
 	public abstract Boolean isHexagon();
+	
+	public abstract Boolean isHorizontalOrientation();
 
-	public abstract void setCellSpecies(final IPopulation pop);
+	public abstract void setCellSpecies(final IPopulation<? extends IAgent> pop);
 
-	public abstract void diffuseVariable_deprecated(final IScope scope, final String name, final double value,
-		final short type, final double prop, final double variation, final ILocation location, final double range,
-		Object candidates);
-
-	// this was once used for "Signal" statement (deprecated since GAMA 1.8). It will have to be removed soon.
+	// this was once used for "Signal" statement (deprecated since GAMA 1.8). It
+	// will have to be removed soon.
 	public abstract void diffuseVariable(final IScope scope, boolean method_diffu, boolean is_gradient,
-		double[][] mat_diffu, double[][] mask, String var_diffu, IPopulation pop, double min_value,
-		boolean avoid_mask);
+			double[][] mat_diffu, double[][] mask, String var_diffu, IPopulation<? extends IAgent> pop,
+			double min_value, boolean avoid_mask);
 
 	public abstract IAgent getAgentAt(final ILocation c);
 
 	public abstract GamaSpatialPath computeShortestPathBetween(final IScope scope, final IShape source,
-		final IShape target, final ITopology topo, final IList<IAgent> on) throws GamaRuntimeException;
+			final IShape target, final ITopology topo, final IList<IAgent> on) throws GamaRuntimeException;
 
-	// public abstract Iterator<IAgent> getNeighborsOf(final IScope scope, final ILocation shape, final Double
+	public abstract GamaSpatialPath computeShortestPathBetweenWeighted(final IScope scope, final IShape source,
+			final IShape target, final ITopology topo, final Map<IAgent, Object> on) throws GamaRuntimeException;
+
+	// public abstract Iterator<IAgent> getNeighborsOf(final IScope scope, final
+	// ILocation shape, final Double
 	// distance,
 	// IAgentFilter filter);
 
 	public abstract Set<IAgent> getNeighborsOf(final IScope scope, final IShape shape, final Double distance,
-		IAgentFilter filter);
+			IAgentFilter filter);
 
 	public abstract int manhattanDistanceBetween(final IShape g1, final IShape g2);
 
@@ -73,9 +80,13 @@ public interface IGrid extends IMatrix<IShape>, ISpatialIndex {
 	public abstract double[] getGridValue();
 
 	/**
-	 * Computes and returns a double array by applying the expression to each of the agents of the grid
-	 * @param scope the current scope
-	 * @param expr cannot be null
+	 * Computes and returns a double array by applying the expression to each of
+	 * the agents of the grid
+	 * 
+	 * @param scope
+	 *            the current scope
+	 * @param expr
+	 *            cannot be null
 	 * @return a double array the size of the grid
 	 */
 	public abstract double[] getGridValueOf(IScope scope, IExpression expr);
@@ -90,6 +101,7 @@ public interface IGrid extends IMatrix<IShape>, ISpatialIndex {
 
 	public abstract int getY(IShape geometry);
 
+	@Override
 	public abstract void dispose();
 
 	public abstract boolean usesIndiviualShapes();
@@ -98,15 +110,13 @@ public interface IGrid extends IMatrix<IShape>, ISpatialIndex {
 	 * @return
 	 */
 	public abstract boolean usesNeighborsCache();
+	
+
+	public abstract String optimizer();
 
 	/**
 	 * @return
 	 */
 	public abstract ISpecies getCellSpecies();
-
-	/**
-	 * @return
-	 */
-	public abstract double[] getGridValueOfColorAttribute();
 
 }

@@ -1,25 +1,33 @@
 /*********************************************************************************************
  *
+ * 'ParamSpaceExploAlgorithm.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and
+ * simulation platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'ParamSpaceExploAlgorithm.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.kernel.batch;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
 import msi.gama.common.interfaces.IKeyword;
-import msi.gama.kernel.experiment.*;
+import msi.gama.kernel.experiment.BatchAgent;
+import msi.gama.kernel.experiment.IExperimentPlan;
+import msi.gama.kernel.experiment.IParameter;
+import msi.gama.kernel.experiment.ParameterAdapter;
+import msi.gama.kernel.experiment.ParametersSet;
 import msi.gama.precompiler.GamlAnnotations.inside;
 import msi.gama.precompiler.ISymbolKind;
-import msi.gama.runtime.*;
+import msi.gama.runtime.GAMA;
 import msi.gama.runtime.GAMA.InScope;
+import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
-import msi.gaml.compilation.*;
+import msi.gaml.compilation.AbstractGamlAdditions;
+import msi.gaml.compilation.ISymbol;
+import msi.gaml.compilation.Symbol;
 import msi.gaml.descriptions.IDescription;
 import msi.gaml.expressions.IExpression;
 import msi.gaml.types.IType;
@@ -27,12 +35,14 @@ import msi.gaml.types.IType;
 /**
  * The Class ParamSpaceExploAlgorithm.
  */
-@inside(kinds = { ISymbolKind.EXPERIMENT })
+@inside (
+		kinds = { ISymbolKind.EXPERIMENT })
 public abstract class ParamSpaceExploAlgorithm extends Symbol implements IExploration {
 
 	public final static String[] COMBINATIONS = new String[] { "maximum", "minimum", "average" };
-	public static final Class[] CLASSES = { GeneticAlgorithm.class, SimulatedAnnealing.class, HillClimbing.class,
-		TabuSearch.class, TabuSearchReactive.class, ExhaustiveSearch.class };
+	@SuppressWarnings ("rawtypes") public static final Class[] CLASSES =
+			{ GeneticAlgorithm.class, SimulatedAnnealing.class, HillClimbing.class, TabuSearch.class,
+					TabuSearchReactive.class, ExhaustiveSearch.class };
 
 	static {
 		AbstractGamlAdditions._constants(COMBINATIONS);
@@ -44,8 +54,8 @@ public abstract class ParamSpaceExploAlgorithm extends Symbol implements IExplor
 	protected boolean isMaximize;
 	protected BatchAgent currentExperiment;
 	// protected IScope scope;
-	private ParametersSet bestSolution;
-	private Double bestFitness;
+	private ParametersSet bestSolution = null;
+	private Double bestFitness = null;
 	protected short combination;
 
 	protected abstract ParametersSet findBestSolution(IScope scope) throws GamaRuntimeException;
@@ -68,12 +78,11 @@ public abstract class ParamSpaceExploAlgorithm extends Symbol implements IExplor
 	}
 
 	void initParams() {
-		GAMA.run(new InScope() {
+		GAMA.run(new InScope.Void() {
 
 			@Override
-			public Object run(final IScope scope) {
+			public void process(final IScope scope) {
 				initParams(scope);
-				return null;
 			}
 		});
 	}
@@ -85,7 +94,7 @@ public abstract class ParamSpaceExploAlgorithm extends Symbol implements IExplor
 		initializeTestedSolutions();
 		fitnessExpression = getFacet(IKeyword.MAXIMIZE, IKeyword.MINIMIZE);
 		isMaximize = hasFacet(IKeyword.MAXIMIZE);
-		String ag = getLiteral(IKeyword.AGGREGATION);
+		final String ag = getLiteral(IKeyword.AGGREGATION);
 		combination = IKeyword.MAX.equals(ag) ? C_MAX : IKeyword.MIN.equals(ag) ? C_MIN : C_MEAN;
 
 	}
@@ -99,7 +108,7 @@ public abstract class ParamSpaceExploAlgorithm extends Symbol implements IExplor
 	public void run(final IScope scope) {
 		try {
 			findBestSolution(scope);
-		} catch (GamaRuntimeException e) {
+		} catch (final GamaRuntimeException e) {
 			GAMA.reportError(scope, e, false);
 		}
 	}
@@ -110,7 +119,7 @@ public abstract class ParamSpaceExploAlgorithm extends Symbol implements IExplor
 	// }
 
 	@Override
-	public void setChildren(final List<? extends ISymbol> commands) {}
+	public void setChildren(final Iterable<? extends ISymbol> commands) {}
 
 	protected boolean isMaximize() {
 		return isMaximize;
@@ -122,13 +131,13 @@ public abstract class ParamSpaceExploAlgorithm extends Symbol implements IExplor
 
 			@Override
 			public Object value() {
-				List<Class> classes = Arrays.asList(CLASSES);
-				String name = IKeyword.METHODS[classes.indexOf(ParamSpaceExploAlgorithm.this.getClass())];
-				String fit = fitnessExpression == null ? ""
-					: "fitness = " + (isMaximize ? " maximize " : " minimize ") + fitnessExpression.serialize(false);
-				String sim = fitnessExpression == null ? ""
-					: (combination == C_MAX ? " max " : combination == C_MIN ? " min " : " average ") + "of " +
-						agent.getSeeds().length + " simulations";
+				@SuppressWarnings ("rawtypes") final List<Class> classes = Arrays.asList(CLASSES);
+				final String name = IKeyword.METHODS[classes.indexOf(ParamSpaceExploAlgorithm.this.getClass())];
+				final String fit = fitnessExpression == null ? "" : "fitness = "
+						+ (isMaximize ? " maximize " : " minimize ") + fitnessExpression.serialize(false);
+				final String sim = fitnessExpression == null ? ""
+						: (combination == C_MAX ? " max " : combination == C_MIN ? " min " : " average ") + "of "
+								+ agent.getSeeds().length + " simulations";
 				return "Method " + name + " | " + fit + " | " + "compute the" + sim + " for each solution";
 			}
 
@@ -156,12 +165,27 @@ public abstract class ParamSpaceExploAlgorithm extends Symbol implements IExplor
 	}
 
 	protected void setBestSolution(final ParametersSet bestSolution) {
-		// scope.getGui().debug("ParamSpaceExploAlgorithm.setBestSolution : " + bestSolution);
+		// scope.getGui().debug("ParamSpaceExploAlgorithm.setBestSolution : " +
+		// bestSolution);
 		this.bestSolution = new ParametersSet(bestSolution);
 	}
 
 	protected void setBestFitness(final Double bestFitness) {
-		// scope.getGui().debug("ParamSpaceExploAlgorithm.setBestFitness : " + bestFitness);
+		// scope.getGui().debug("ParamSpaceExploAlgorithm.setBestFitness : " +
+		// bestFitness);
 		this.bestFitness = bestFitness;
+	}
+
+	@Override
+	public void updateBestFitness(final ParametersSet solution, final Double fitness) {
+		if (fitness == null)
+			return;
+		Double best = getBestFitness();
+		if (best == null)
+			best = 0d;
+		if (bestSolution == null || (isMaximize() ? fitness > best : fitness < best)) {
+			setBestFitness(fitness);
+			setBestSolution(solution);
+		}
 	}
 }

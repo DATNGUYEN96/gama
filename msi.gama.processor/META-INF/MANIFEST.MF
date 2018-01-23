@@ -2,11 +2,17 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: GAMA Processor
 Bundle-SymbolicName: msi.gama.processor;singleton:=true
-Bundle-Version: 1.4.0
+Bundle-Version: 1.4.0.qualifier
 Bundle-Vendor: MSI
 Export-Package: msi.gama.precompiler;
-  uses:="javax.annotation.processing,
-   msi.gama.precompiler.doc.utils,
+  uses:="org.w3c.dom,
+   javax.lang.model.util,
+   javax.lang.model,
+   javax.tools,
    javax.lang.model.type,
-   javax.lang.model.element",
- msi.gama.precompiler.constants
+   javax.xml.parsers,
+   javax.xml.transform,
+   javax.annotation.processing,
+   javax.lang.model.element"
+Require-Bundle: ummisco.gama.annotations;bundle-version="1.7.0"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8

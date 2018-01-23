@@ -1,54 +1,73 @@
 /*********************************************************************************************
  *
+ * 'IGraph.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform. (c)
+ * 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'IGraph.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.util.graph;
 
-import java.util.*;
-import org.jgrapht.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import org.jgrapht.DirectedGraph;
+import org.jgrapht.UndirectedGraph;
+import org.jgrapht.WeightedGraph;
+
 import msi.gama.metamodel.topology.graph.FloydWarshallShortestPathsGAMA;
-import msi.gama.precompiler.GamlAnnotations.*;
+import msi.gama.precompiler.GamlAnnotations.doc;
+import msi.gama.precompiler.GamlAnnotations.getter;
+import msi.gama.precompiler.GamlAnnotations.var;
+import msi.gama.precompiler.GamlAnnotations.vars;
 import msi.gama.precompiler.ITypeProvider;
 import msi.gama.runtime.IScope;
-import msi.gama.util.*;
+import msi.gama.util.GamaPair;
+import msi.gama.util.IAddressableContainer;
+import msi.gama.util.IContainer;
+import msi.gama.util.IList;
+import msi.gama.util.IModifiableContainer;
 import msi.gama.util.path.IPath;
 import msi.gaml.species.ISpecies;
 import msi.gaml.statements.AbstractContainerStatement.GraphObjectToAdd;
 import msi.gaml.types.IType;
 
 /**
- * Written by drogoul
- * Modified on 24 nov. 2011
+ * Written by drogoul Modified on 24 nov. 2011
  *
- * An interface for the different kinds of graphs encountered in GAML. Vertices are the keys (actually, pairs of nodes), while edges are the values
+ * An interface for the different kinds of graphs encountered in GAML. Vertices are the keys (actually, pairs of nodes),
+ * while edges are the values
  *
  */
-@vars({
-	@var(name = "spanning_tree",
+@vars ({ @var (
+		name = "spanning_tree",
 		type = IType.LIST,
 		of = ITypeProvider.FIRST_CONTENT_TYPE,
-		doc = { @doc("Returns the list of edges that compose the minimal spanning tree of this graph") }),
-	@var(name = "circuit",
-		type = IType.PATH,
-		doc = {
-			@doc("Returns a polynomial approximation of the Hamiltonian cycle (the optimal tour passing through each vertex) of this graph") }),
-	@var(name = "connected", type = IType.BOOL, doc = { @doc("Returns whether this graph is connected or not") }),
-	@var(name = "edges",
-		type = IType.LIST,
-		of = ITypeProvider.FIRST_CONTENT_TYPE,
-		doc = { @doc("Returns the list of edges of the receiver graph") }),
-	@var(name = "vertices",
-		type = IType.LIST,
-		of = ITypeProvider.FIRST_KEY_TYPE,
-		doc = { @doc("Returns the list of vertices of the receiver graph") }) })
-public interface IGraph<Node, Edge> extends IModifiableContainer<Node, Edge, GamaPair<Node, Node>, GraphObjectToAdd>, IAddressableContainer<Node, Edge, GamaPair<Node, Node>, List<Edge>>, WeightedGraph<Node, Edge>, DirectedGraph<Node, Edge>, UndirectedGraph<Node, Edge>, IGraphEventProvider {
+		doc = { @doc ("Returns the list of edges that compose the minimal spanning tree of this graph") }),
+		@var (
+				name = "circuit",
+				type = IType.PATH,
+				doc = { @doc ("Returns a polynomial approximation of the Hamiltonian cycle (the optimal tour passing through each vertex) of this graph") }),
+		@var (
+				name = "connected",
+				type = IType.BOOL,
+				doc = { @doc ("Returns whether this graph is connected or not") }),
+		@var (
+				name = "edges",
+				type = IType.LIST,
+				of = ITypeProvider.FIRST_CONTENT_TYPE,
+				doc = { @doc ("Returns the list of edges of the receiver graph") }),
+		@var (
+				name = "vertices",
+				type = IType.LIST,
+				of = ITypeProvider.FIRST_KEY_TYPE,
+				doc = { @doc ("Returns the list of vertices of the receiver graph") }) })
+@SuppressWarnings ({ "rawtypes" })
+public interface IGraph<Node, Edge> extends IModifiableContainer<Node, Edge, GamaPair<Node, Node>, GraphObjectToAdd>,
+		IAddressableContainer<Node, Edge, GamaPair<Node, Node>, List<Edge>>, WeightedGraph<Node, Edge>,
+		DirectedGraph<Node, Edge>, UndirectedGraph<Node, Edge>, IGraphEventProvider {
 
 	public abstract double getVertexWeight(final Object v);
 
@@ -66,20 +85,23 @@ public interface IGraph<Node, Edge> extends IModifiableContainer<Node, Edge, Gam
 
 	public Map<Node, _Vertex<Node, Edge>> _internalVertexMap();
 
-	@getter("edges")
+	@getter ("edges")
 	public abstract IList<Edge> getEdges();
 
-	@getter("vertices")
+	@getter ("vertices")
 	public abstract IList<Node> getVertices();
 
-	@getter("spanning_tree")
+	@getter ("spanning_tree")
 	public abstract IList<Edge> getSpanningTree(IScope scope);
 
-	@getter("circuit")
+	@getter ("circuit")
 	public abstract IPath<Node, Edge, IGraph<Node, Edge>> getCircuit(IScope scope);
 
-	@getter("connected")
+	@getter ("connected")
 	public abstract Boolean getConnected();
+
+	@getter ("has_cycle")
+	public abstract Boolean hasCycle();
 
 	public abstract boolean isDirected();
 
@@ -100,11 +122,13 @@ public interface IGraph<Node, Edge> extends IModifiableContainer<Node, Edge, Gam
 	public void incVersion();
 
 	// FIXME Patrick: To check
-	// public abstract IPath<V,E> computeShortestPathBetween(final Object source, final Object target);
-	// public abstract IList<IShape> computeBestRouteBetween(final Object source, final Object target);
+	// public abstract IPath<V,E> computeShortestPathBetween(final Object
+	// source, final Object target);
+	// public abstract IList<IShape> computeBestRouteBetween(final Object
+	// source, final Object target);
 
 	public abstract IPath<Node, Edge, IGraph<Node, Edge>> computeShortestPathBetween(IScope scope, final Node source,
-		final Node target);
+			final Node target);
 
 	public abstract IList<Edge> computeBestRouteBetween(IScope scope, final Node source, final Node target);
 
@@ -116,11 +140,11 @@ public interface IGraph<Node, Edge> extends IModifiableContainer<Node, Edge, Gam
 
 	public void setSaveComputedShortestPaths(boolean saveComputedShortestPaths);
 
-	public abstract List<IPath<Node, Edge, IGraph<Node, Edge>>> computeKShortestPathsBetween(IScope scope, Node source,
-		Node target, int k);
+	public abstract IList<IPath<Node, Edge, IGraph<Node, Edge>>> computeKShortestPathsBetween(IScope scope, Node source,
+			Node target, int k);
 
 	public abstract IList<IList<Edge>> computeKBestRoutesBetween(IScope scope, final Node source, final Node target,
-		int k);
+			int k);
 
 	public GraphObjectToAdd buildValue(IScope scope, Object object);
 

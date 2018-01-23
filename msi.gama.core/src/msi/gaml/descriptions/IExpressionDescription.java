@@ -1,18 +1,19 @@
 /*********************************************************************************************
  *
- *
- * 'IExpressionDescription.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'IExpressionDescription.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.descriptions;
 
-import java.util.Set;
+import java.util.Collection;
+
 import org.eclipse.emf.ecore.EObject;
+
 import msi.gama.common.interfaces.IGamlable;
 import msi.gama.precompiler.GamlProperties;
 import msi.gaml.expressions.IExpression;
@@ -26,6 +27,11 @@ import msi.gaml.types.IType;
  *
  */
 public interface IExpressionDescription extends IGamlable {
+
+	public static interface IExpressionVisitor {
+
+		boolean visit(IExpression exp);
+	}
 
 	public abstract void setExpression(final IExpression expr);
 
@@ -43,12 +49,13 @@ public interface IExpressionDescription extends IGamlable {
 
 	public void setTarget(EObject target);
 
-	public boolean isConstant();
+	public boolean isConst();
 
-	public Set<String> getStrings(IDescription context, boolean skills);
+	public Collection<String> getStrings(IDescription context, boolean skills);
 
 	public abstract IExpressionDescription cleanCopy();
 
+	@SuppressWarnings("rawtypes")
 	public abstract IType getDenotedType(IDescription context);
 
 	public abstract void collectMetaInformation(GamlProperties meta);

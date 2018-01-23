@@ -1,19 +1,30 @@
-/**
- * Created by drogoul, 30 janv. 2015
+/*********************************************************************************************
  *
- */
+ * 'GamaListFactory.java, in plugin msi.gama.core, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.util;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang.ArrayUtils;
 
 import com.google.common.collect.Iterables;
 
 import msi.gama.runtime.IScope;
+import msi.gama.runtime.concurrent.GamaExecutorService;
 import msi.gaml.expressions.IExpression;
 import msi.gaml.types.GamaType;
 import msi.gaml.types.IType;
@@ -31,9 +42,27 @@ import msi.gaml.types.Types;
  * @since 30 janv. 2015
  *
  */
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class GamaListFactory {
 
-	private static final int DEFAULT_SIZE = 10;
+	private static final int DEFAULT_SIZE = 4;
+
+	public static Collector<Object, IList<Object>, IList<Object>> TO_GAMA_LIST = ContainerHelper.<Object> toGamaList();
+
+	public static class GamaListSupplier implements Supplier<IList> {
+
+		final IType t;
+
+		public GamaListSupplier(final IType t) {
+			this.t = t;
+		}
+
+		@Override
+		public IList get() {
+			return create(t);
+		}
+
+	}
 
 	/**
 	 * Create a GamaList from an array of objects, but does not attempt casting
@@ -45,6 +74,15 @@ public class GamaListFactory {
 	 *          wrong type into the list
 	 * @return
 	 */
+
+	// public static <T> IList<T> create(final IType t, final Stream<T> stream)
+	// {
+	// return (IList<T>) createWithoutCasting(t, stream.toArray());
+	// }
+
+	public static <T> IList<T> create(final IType t, final Stream<T> stream) {
+		return (IList<T>) stream.collect(TO_GAMA_LIST);
+	}
 
 	public static <T> IList<T> createWithoutCasting(final IType contentType, final T... objects) {
 		final IList<T> list = create(contentType, objects.length);
@@ -135,11 +173,22 @@ public class GamaListFactory {
 		return list;
 	}
 
+	@SafeVarargs
 	public static <T> IList<T> create(final IScope scope, final IType contentType, final T... objects) {
 		final IList<T> list = create(contentType, objects == null ? 0 : objects.length);
 		if (objects != null) {
 			for (final Object o : objects) {
 				castAndAdd(scope, list, o);
+			}
+		}
+		return list;
+	}
+
+	public static IList create(final IScope scope, final IType contentType, final byte[] ints) {
+		final IList list = create(contentType, ints == null ? 0 : ints.length);
+		if (ints != null) {
+			for (final int o : ints) {
+				castAndAdd(scope, list, Integer.valueOf(o));
 			}
 		}
 		return list;
@@ -155,6 +204,26 @@ public class GamaListFactory {
 		return list;
 	}
 
+	public static IList create(final IScope scope, final IType contentType, final long[] ints) {
+		final IList list = create(contentType, ints == null ? 0 : ints.length);
+		if (ints != null) {
+			for (final long o : ints) {
+				castAndAdd(scope, list, Long.valueOf(o).intValue());
+			}
+		}
+		return list;
+	}
+
+	public static IList create(final IScope scope, final IType contentType, final float[] doubles) {
+		final IList list = create(contentType, doubles == null ? 0 : doubles.length);
+		if (doubles != null) {
+			for (final float o : doubles) {
+				castAndAdd(scope, list, Double.valueOf(o));
+			}
+		}
+		return list;
+	}
+
 	public static IList create(final IScope scope, final IExpression fillExpr, final Integer size) {
 		if (fillExpr == null) {
 			return create(Types.NO_TYPE, size);
@@ -163,11 +232,14 @@ public class GamaListFactory {
 		final IType contentType = fillExpr.getType();
 		// 10/01/14. Cannot use Arrays.fill() everywhere: see Issue 778.
 		if (fillExpr.isConst()) {
-			Arrays.fill(contents, fillExpr.value(scope));
+			final Object o = fillExpr.value(scope);
+			GamaExecutorService.executeThreaded(() -> IntStream.range(0, contents.length).parallel().forEach(i -> {
+				contents[i] = o;
+			}));
 		} else {
-			for (int i = 0; i < contents.length; i++) {
+			GamaExecutorService.executeThreaded(() -> IntStream.range(0, contents.length).parallel().forEach(i -> {
 				contents[i] = fillExpr.value(scope);
-			}
+			}));
 		}
 		return create(scope, contentType, contents);
 	}

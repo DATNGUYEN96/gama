@@ -1,3 +1,13 @@
+/*********************************************************************************************
+ *
+ * 'MQTTConnector.java, in plugin ummisco.gama.network, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package ummisco.gama.network.mqqt;
 
 import java.util.Calendar;
@@ -19,7 +29,6 @@ import ummisco.gama.network.common.GamaNetworkException;
 public final class MQTTConnector extends Connector{
 	public static String DEFAULT_USER = "admin";
 	public static String DEFAULT_LOCAL_NAME = "gama-"+Calendar.getInstance().getTimeInMillis()+"@";
-	
 	public static String DEFAULT_PASSWORD = "password";
 	public static String DEFAULT_HOST =  "localhost";
 	public static String DEFAULT_PORT =  "1883";
@@ -106,12 +115,10 @@ public final class MQTTConnector extends Connector{
 			password = (password==null?DEFAULT_PASSWORD:userName);
 			localName = (localName==null?DEFAULT_LOCAL_NAME+server:localName);
 			
-			System.out.println("agent creation "+ agent.getName());
-			
 			try {
 				sendConnection = new MqttClient("tcp://"+server+":"+port, localName, new MemoryPersistence());
 				MqttConnectOptions connOpts = new MqttConnectOptions();
-		        connOpts.setCleanSession(true);
+				connOpts.setCleanSession(true);
 		        sendConnection.setCallback(new Callback());
 		        connOpts.setCleanSession(true);
 		        connOpts.setKeepAliveInterval(30);

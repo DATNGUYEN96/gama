@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'GamaColor.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'GamaColor.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.util;
@@ -36,27 +34,42 @@ import msi.gaml.types.Types;
  *
  * @author drogoul
  */
-@vars({ @var(name = IKeyword.COLOR_RED, type = IType.INT, doc = {
-		@doc("Returns the red component of the color (between 0 and 255)") }),
-		@var(name = IKeyword.COLOR_GREEN, type = IType.INT, doc = {
-				@doc("Returns the green component of the color (between 0 and 255)") }),
-		@var(name = IKeyword.COLOR_BLUE, type = IType.INT, doc = {
-				@doc("Returns the blue component of the color (between 0 and 255)") }),
-		@var(name = IKeyword.ALPHA, type = IType.INT, doc = {
-				@doc("Returns the alpha component (transparency) of the color (between 0 for transparent and 255 for opaque)") }),
-		@var(name = IKeyword.BRIGHTER, type = IType.COLOR, doc = {
-				@doc("Returns a lighter color (with increased luminance)") }),
-		@var(name = IKeyword.DARKER, type = IType.COLOR, doc = {
-				@doc("Returns a darker color (with decreased luminance)") }) })
-public class GamaColor extends Color implements IValue,
-		Comparable<Color>/* implements IContainer<Integer, Integer> */ {
+@vars ({ @var (
+		name = IKeyword.COLOR_RED,
+		type = IType.INT,
+		doc = { @doc ("Returns the red component of the color (between 0 and 255)") }),
+		@var (
+				name = IKeyword.COLOR_GREEN,
+				type = IType.INT,
+				doc = { @doc ("Returns the green component of the color (between 0 and 255)") }),
+		@var (
+				name = IKeyword.COLOR_BLUE,
+				type = IType.INT,
+				doc = { @doc ("Returns the blue component of the color (between 0 and 255)") }),
+		@var (
+				name = IKeyword.ALPHA,
+				type = IType.INT,
+				doc = { @doc ("Returns the alpha component (transparency) of the color (between 0 for transparent and 255 for opaque)") }),
+		@var (
+				name = IKeyword.BRIGHTER,
+				type = IType.COLOR,
+				doc = { @doc ("Returns a lighter color (with increased luminance)") }),
+		@var (
+				name = IKeyword.DARKER,
+				type = IType.COLOR,
+				doc = { @doc ("Returns a darker color (with decreased luminance)") }) })
+public class GamaColor extends Color implements IValue, Comparable<Color>/* implements IContainer<Integer, Integer> */ {
 
-	@constant(value = "the set of CSS colors", category = IConstantCategory.COLOR_CSS, concept = {}, doc = @doc("In addition to the previous units, GAML provides a direct access to the 147 named colors defined in CSS (see [http://www.cssportal.com/css3-color-names/]). E.g, {{{rgb my_color <- °teal;}}}"))
-	public final static Object[] array = ColorCSS.array;
+	@constant (
+			value = "the set of CSS colors",
+			category = IConstantCategory.COLOR_CSS,
+			concept = {},
+			doc = @doc ("In addition to the previous units, GAML provides a direct access to the 147 named colors defined in CSS (see [http://www.cssportal.com/css3-color-names/]). E.g, {{{rgb my_color <- °teal;}}}")) public final static Object[] array =
+					ColorCSS.array;
 
-	public final static Map<String, GamaColor> colors = new THashMap();
-	public final static TIntObjectMap<GamaColor> int_colors = TCollections
-			.synchronizedMap(new TIntObjectHashMap<GamaColor>());
+	public final static Map<String, GamaColor> colors = new THashMap<>();
+	public final static TIntObjectMap<GamaColor> int_colors =
+			TCollections.synchronizedMap(new TIntObjectHashMap<GamaColor>());
 
 	public static GamaColor getInt(final int rgb) {
 		GamaColor result = int_colors.get(rgb);
@@ -67,24 +80,33 @@ public class GamaColor extends Color implements IValue,
 		return result;
 	}
 
+	public static GamaColor getNamed(final String rgb) {
+		final GamaColor result = colors.get(rgb);
+		return result;
+	}
+
 	static {
 		for (int i = 0; i < array.length; i += 2) {
 			final GamaColor color = new NamedGamaColor((String) array[i], (int[]) array[i + 1]);
 			colors.put((String) array[i], color);
 			int_colors.put(color.getRGB(), color);
 		}
-		//A.G add the GAMA Color corresponding to the GAMA1.7 Logo
-		final GamaColor orange = new NamedGamaColor("gamaorange", new int[]{244,165,40,1});
+		// A.G add the GAMA Color corresponding to the GAMA1.7 Logo
+		final GamaColor orange = new NamedGamaColor("gamaorange", new int[] { 244, 165, 40, 1 });
 		colors.put("gamaorange", orange);
 		int_colors.put(orange.getRGB(), orange);
-		
-		final GamaColor red = new NamedGamaColor("gamared", new int[]{217,72,33,1});
+
+		final GamaColor red = new NamedGamaColor("gamared", new int[] { 217, 72, 33, 1 });
 		colors.put("gamared", red);
 		int_colors.put(red.getRGB(), red);
-		
-		final GamaColor blue = new NamedGamaColor("gamablue", new int[]{22,94,147,1});
+
+		final GamaColor blue = new NamedGamaColor("gamablue", new int[] { 22, 94, 147, 1 });
 		colors.put("gamablue", blue);
 		int_colors.put(blue.getRGB(), blue);
+
+		final GamaColor green = new NamedGamaColor("gamagreen", new int[] { 81, 135, 56, 1 });
+		colors.put("gamagreen", green);
+		int_colors.put(green.getRGB(), green);
 	}
 
 	public static class NamedGamaColor extends GamaColor {
@@ -139,10 +161,10 @@ public class GamaColor extends Color implements IValue,
 		super(awtRGB, true);
 	}
 
-	// public GamaColor(final int r, final int g, final int b) {
-	// this(normalize(r), normalize(g), normalize(b), 255);
-	//
-	// }
+	public GamaColor(final int r, final int g, final int b) {
+		this(normalize(r), normalize(g), normalize(b), 255);
+
+	}
 
 	public GamaColor(final int r, final int g, final int b, final int t) {
 		// t between 0 and 255
@@ -181,32 +203,32 @@ public class GamaColor extends Color implements IValue,
 		return String.valueOf(getRGB());
 	}
 
-	@getter(IKeyword.COLOR_RED)
+	@getter (IKeyword.COLOR_RED)
 	public Integer red() {
 		return super.getRed();
 	}
 
-	@getter(IKeyword.COLOR_BLUE)
+	@getter (IKeyword.COLOR_BLUE)
 	public Integer blue() {
 		return super.getBlue();
 	}
 
-	@getter(IKeyword.COLOR_GREEN)
+	@getter (IKeyword.COLOR_GREEN)
 	public Integer green() {
 		return super.getGreen();
 	}
 
-	@getter(IKeyword.ALPHA)
+	@getter (IKeyword.ALPHA)
 	public Integer alpha() {
 		return super.getAlpha();
 	}
 
-	@getter(IKeyword.BRIGHTER)
+	@getter (IKeyword.BRIGHTER)
 	public GamaColor getBrighter() {
 		return new GamaColor(super.brighter());
 	}
 
-	@getter(IKeyword.DARKER)
+	@getter (IKeyword.DARKER)
 	public GamaColor getDarker() {
 		return new GamaColor(super.darker());
 	}
@@ -214,6 +236,11 @@ public class GamaColor extends Color implements IValue,
 	@Override
 	public GamaColor copy(final IScope scope) {
 		return new GamaColor(this);
+	}
+
+	public static GamaColor merge(final GamaColor c1, final GamaColor c2) {
+		return new GamaColor(c1.getRed() + c2.getRed(), c1.getGreen() + c2.getGreen(), c1.getBlue() + c2.getBlue(),
+				c1.getAlpha() + c2.getAlpha());
 	}
 
 	public int compareRgbTo(final Color c2) {
@@ -247,8 +274,12 @@ public class GamaColor extends Color implements IValue,
 	 * @see msi.gama.common.interfaces.ITyped#getType()
 	 */
 	@Override
-	public IType getType() {
+	public IType<?> getType() {
 		return Types.COLOR;
+	}
+
+	public GamaColor withAlpha(final double d) {
+		return new GamaColor(getRed(), getGreen(), getBlue(), d);
 	}
 
 }

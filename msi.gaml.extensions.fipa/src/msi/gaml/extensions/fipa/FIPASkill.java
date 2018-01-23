@@ -73,6 +73,7 @@ import msi.gaml.types.Types;
 		@var(name = "requests", type = IType.LIST, of = IType.MESSAGE, doc = @doc("A list of 'request' performative messages.")),
 		@var(name = "requestWhens", type = IType.LIST, of = IType.MESSAGE, doc = @doc("A list of 'request-when' performative messages.")),
 		@var(name = "subscribes", type = IType.LIST, of = IType.MESSAGE, doc = @doc("A list of 'subscribe' performative messages.")), })
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class FIPASkill extends MessagingSkill {
 
 	@doc(deprecated = "Use the keyword 'fipa' instead")
@@ -302,6 +303,7 @@ public class FIPASkill extends MessagingSkill {
 	public Object primAgree(final IScope scope) throws GamaRuntimeException {
 		final IList originals = getMessageArg(scope);
 		if (originals == null || originals.size() == 0) {
+			return null;
 		}
 
 		return replyMessage(scope, originals, AGREE, getContentArg(scope));
@@ -745,7 +747,7 @@ public class FIPASkill extends MessagingSkill {
 			return GamaListFactory.create();
 		}
 		final IList<FIPAMessage> result = GamaListFactory
-				.create(scope.getModelContext().getTypeNamed(GamaMessageType.MESSAGE_STR));
+				.create(scope.getType(GamaMessageType.MESSAGE_STR));
 		for (final FIPAMessage m : inBox) {
 			final boolean unread = m.isUnread();
 			final int mperf = m.getPerformative();

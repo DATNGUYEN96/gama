@@ -1,24 +1,27 @@
 /*********************************************************************************************
  *
- *
- * 'ListExpression.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'ListExpression.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.expressions;
 
 import java.util.Arrays;
-import java.util.List;
+
+import com.google.common.collect.Iterables;
 
 import msi.gama.precompiler.GamlProperties;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gama.util.GamaListFactory;
+import msi.gama.util.ICollector;
 import msi.gama.util.IList;
+import msi.gaml.descriptions.IDescription;
+import msi.gaml.descriptions.VariableDescription;
 import msi.gaml.types.GamaType;
 import msi.gaml.types.Types;
 
@@ -27,9 +30,10 @@ import msi.gaml.types.Types;
  *
  * @author drogoul 23 août 07
  */
+@SuppressWarnings({ "rawtypes" })
 public class ListExpression extends AbstractExpression {
 
-	public static IExpression create(final List<? extends IExpression> elements) {
+	public static IExpression create(final Iterable<? extends IExpression> elements) {
 		final ListExpression u = new ListExpression(elements);
 
 		// if (u.isConst() && GamaPreferences.CONSTANT_OPTIMIZATION.getValue())
@@ -45,21 +49,34 @@ public class ListExpression extends AbstractExpression {
 	}
 
 	final IExpression[] elements;
-	private final Object[] values;
+	// private final Object[] values;
 	// private boolean isConst;
 	private boolean computed;
 
-	ListExpression(final List<? extends IExpression> elements) {
-		this.elements = elements.toArray(new IExpression[0]);
-		final int n = this.elements.length;
-		values = new Object[n];
-		setName(elements.toString());
+	ListExpression(final Iterable<? extends IExpression> elements) {
+		this.elements = Iterables.toArray(elements, IExpression.class);
+		// final int n = this.elements.length;
+		// values = new Object[n];
 		type = Types.LIST.of(GamaType.findCommonType(this.elements, GamaType.TYPE));
-		isConst();
+		// isConst();
 	}
 
 	public IExpression[] getElements() {
 		return elements;
+	}
+
+	public boolean containsValue(final Object o) {
+		if (o == null)
+			return false;
+		for (final IExpression exp : elements) {
+			if (!(exp instanceof ConstantExpression)) {
+				return false;
+			}
+			final Object e = exp.value(null);
+			if (o.equals(e))
+				return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -79,6 +96,7 @@ public class ListExpression extends AbstractExpression {
 		// if ( isConst && computed ) { return
 		// GamaListFactory.createWithoutCasting(getType().getContentType(),
 		// values); }
+		final Object[] values = new Object[elements.length];
 		for (int i = 0; i < elements.length; i++) {
 			if (elements[i] == null) {
 				computed = false;
@@ -136,7 +154,7 @@ public class ListExpression extends AbstractExpression {
 	/**
 	 * Method collectPlugins()
 	 * 
-	 * @see msi.gaml.descriptions.IGamlDescription#collectPlugins(java.util.Set)
+	 * @see msi.gama.common.interfaces.IGamlDescription#collectPlugins(java.util.Set)
 	 */
 	@Override
 	public void collectMetaInformation(final GamlProperties meta) {
@@ -145,6 +163,16 @@ public class ListExpression extends AbstractExpression {
 				e.collectMetaInformation(meta);
 			}
 		}
+	}
+
+	@Override
+	public void collectUsedVarsOf(final IDescription species, final ICollector<VariableDescription> result) {
+		for (final IExpression e : elements) {
+			if (e != null) {
+				e.collectUsedVarsOf(species, result);
+			}
+		}
+
 	}
 
 }

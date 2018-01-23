@@ -1,30 +1,25 @@
 /*********************************************************************************************
  *
+ * 'IExpressionFactory.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'IExpressionFactory.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.expressions;
 
-import java.util.List;
-import java.util.Map;
-
 import org.eclipse.emf.ecore.EObject;
 
 import msi.gama.metamodel.agent.IAgent;
+import msi.gama.runtime.IExecutionContext;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
+import msi.gaml.descriptions.ActionDescription;
+import msi.gaml.descriptions.ConstantExpressionDescription;
 import msi.gaml.descriptions.IDescription;
 import msi.gaml.descriptions.IExpressionDescription;
-import msi.gaml.descriptions.StatementDescription;
-import msi.gaml.operators.IUnits;
 import msi.gaml.statements.Arguments;
 import msi.gaml.types.IType;
-import msi.gaml.types.Types;
 
 /**
  * Written by drogoul Modified on 27 d�c. 2010
@@ -32,12 +27,13 @@ import msi.gaml.types.Types;
  * @todo Description
  *
  */
+@SuppressWarnings ({ "rawtypes" })
 public interface IExpressionFactory {
 
-	public static final ConstantExpression TRUE_EXPR = new ConstantExpression(true, Types.BOOL);
-	public static final ConstantExpression FALSE_EXPR = new ConstantExpression(false, Types.BOOL);
-	public static final ConstantExpression NIL_EXPR = new ConstantExpression(null, Types.NO_TYPE);
-	public final static Map<String, UnitConstantExpression> UNITS_EXPR = IUnits.UNITS_EXPR;
+	public static final ConstantExpression TRUE_EXPR = ConstantExpressionDescription.TRUE_EXPR_DESCRIPTION;
+	public static final ConstantExpression FALSE_EXPR = ConstantExpressionDescription.FALSE_EXPR_DESCRIPTION;
+	public static final ConstantExpression NIL_EXPR = ConstantExpressionDescription.NULL_EXPR_DESCRIPTION;
+	public static final String TEMPORARY_ACTION_NAME = "__synthetic__action__";
 
 	// public void registerParserProvider(IExpressionCompilerProvider parser);
 
@@ -52,18 +48,20 @@ public interface IExpressionFactory {
 
 	public abstract IExpression createExpr(final String s, IDescription context);
 
-	public abstract ConstantExpression getUnitExpr(final String unit);
+	public IExpression createExpr(final String s, final IDescription context,
+			final IExecutionContext additionalContext);
 
-	Map<String, IExpressionDescription> createArgumentMap(StatementDescription action, IExpressionDescription args,
-			IDescription context);
+	public abstract UnitConstantExpression getUnitExpr(final String unit);
+
+	Arguments createArgumentMap(ActionDescription action, IExpressionDescription args, IDescription context);
 
 	public IExpressionCompiler getParser();
 
 	IExpression createVar(String name, IType type, boolean isConst, int scope, IDescription definitionDescription);
 
-	public IExpression createList(final List<? extends IExpression> elements);
+	public IExpression createList(final Iterable<? extends IExpression> elements);
 
-	public IExpression createMap(final List<? extends IExpression> elements);
+	public IExpression createMap(final Iterable<? extends IExpression> elements);
 
 	/**
 	 * @param op
@@ -82,7 +80,7 @@ public interface IExpressionFactory {
 	 */
 	IExpression createTypeExpression(IType type);
 
-	public abstract boolean isInitialized();
+	// public abstract boolean isInitialized();
 
 	/**
 	 * @param symbolDescription
@@ -104,7 +102,8 @@ public interface IExpressionFactory {
 	 * @param doc
 	 * @return
 	 */
-	public UnitConstantExpression createUnit(Object value, IType t, String name, String doc, String[] names);
+	public UnitConstantExpression createUnit(Object value, IType t, String name, String doc, String deprecated,
+			boolean isTime, String[] names);
 
 	/**
 	 * @param op
@@ -114,9 +113,10 @@ public interface IExpressionFactory {
 	 * @param arguments
 	 * @return
 	 */
-	IExpression createAction(String op, IDescription callerContext, StatementDescription action, IExpression call,
+	IExpression createAction(String op, IDescription callerContext, ActionDescription action, IExpression call,
 			Arguments arguments);
 
-	public abstract IExpression createTemporaryActionForAgent(IAgent agent, String expression);
+	public abstract IExpression createTemporaryActionForAgent(IAgent agent, String expression,
+			IExecutionContext tempContext);
 
 }

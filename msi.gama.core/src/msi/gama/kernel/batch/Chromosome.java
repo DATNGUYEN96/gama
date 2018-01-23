@@ -1,16 +1,16 @@
 /*********************************************************************************************
- * 
- * 
- * 'Chromosome.java', in plugin 'msi.gama.core', is part of the source code of the
+ *
+ * 'Chromosome.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gama.kernel.batch;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -54,6 +54,14 @@ public class Chromosome implements Comparable<Chromosome> {
 		}
 
 		fitness = chromosome.fitness;
+	}
+	
+	public void update(final IScope scope, final ParametersSet solution) {
+		int nb = this.getGenes().length;
+		for (int i = 0; i < nb; i++) {
+			String var =  getPhenotype()[i]; 
+			genes[i] = Cast.asFloat(scope, solution.get(var));
+		}
 	}
 
 	public Chromosome(final IScope scope, final List<IParameter.Batch> variables, final boolean reInitVal) {
@@ -104,5 +112,30 @@ public class Chromosome implements Comparable<Chromosome> {
 	public String[] getPhenotype() {
 		return phenotype;
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(genes);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Chromosome other = (Chromosome) obj;
+		if (!Arrays.equals(genes, other.genes))
+			return false;
+		return true;
+	}
+
+	
+	
 
 }

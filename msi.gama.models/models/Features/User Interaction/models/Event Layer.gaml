@@ -25,10 +25,11 @@ global
 	}
 
 	//Action to change the color of the agents, according to the point to know which agents we're in intersection with the point
-	action change_color (point loc, list<cell> selected_agents)
+	action change_color 
 	{
 
 	//change the color of the agents
+		list<cell> selected_agents <- cell overlapping (circle(10) at_location #user_location);
 		ask selected_agents
 		{
 			color <- color = °green ? °pink : °green;
@@ -37,8 +38,9 @@ global
 	}
 
 	//Action to change the shape of the agents, according to the point to know which agents we're in intersection with the point
-	action change_shape (point loc, list<cell> selected_agents)
+	action change_shape 
 	{
+		list<cell> selected_agents <- cell overlapping (circle(10) at_location #user_location);
 		ask selected_agents
 		{
 
@@ -76,6 +78,7 @@ experiment Displays type: gui
 			species cell aspect: default;
 
 			//event, launches the action change_color if the event mouse_down (ie. the user clicks on the layer event) is triggered
+			// the action can be either in the experiment or in the global section. If it is defined in both, the one in the experiment will be chosen in priority
 			event [mouse_down] action: change_color;
 		}
 
@@ -84,7 +87,8 @@ experiment Displays type: gui
 			species cell;
 
 			//event, launches the action change_shape if the event mouse_down (ie. the user clicks on the layer event) is triggered
-			event [mouse_down] action: change_shape;
+			// The block is executed in the context of the experiment, so we have to ask the simulation to do it. 
+			event [mouse_down] action: {ask simulation {do change_shape;}};
 		}
 
 	}

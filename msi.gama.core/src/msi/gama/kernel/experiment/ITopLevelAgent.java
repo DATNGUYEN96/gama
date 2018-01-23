@@ -1,10 +1,17 @@
-/**
- * Created by drogoul, 27 janv. 2016
+/*********************************************************************************************
  *
- */
+ * 'ITopLevelAgent.java, in plugin msi.gama.core, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.kernel.experiment;
 
 import msi.gama.common.util.RandomUtils;
+import msi.gama.kernel.simulation.SimulationAgent;
 import msi.gama.kernel.simulation.SimulationClock;
 import msi.gama.metamodel.agent.IMacroAgent;
 import msi.gama.outputs.IOutputManager;
@@ -39,5 +46,9 @@ public interface ITopLevelAgent extends IMacroAgent {
 	public boolean isOnUserHold();
 
 	public void setOnUserHold(boolean state);
+
+	public SimulationAgent getSimulation();
+
+	public IExperimentAgent getExperiment();
 
 }

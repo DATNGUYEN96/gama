@@ -1,26 +1,25 @@
 /*********************************************************************************************
  *
- *
- * 'SpeciesConstantExpression.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'SkillConstantExpression.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.expressions;
 
+import msi.gama.common.interfaces.ISkill;
 import msi.gama.precompiler.GamlProperties;
 import msi.gaml.architecture.IArchitecture;
-import msi.gaml.compilation.AbstractGamlAdditions;
-import msi.gaml.skills.ISkill;
+import msi.gaml.compilation.kernel.GamaSkillRegistry;
 import msi.gaml.types.IType;
 
 public class SkillConstantExpression extends ConstantExpression {
 
 	public SkillConstantExpression(final String val, final IType<ISkill> t) {
-		super(AbstractGamlAdditions.getSkillInstanceFor(val), t);
+		super(GamaSkillRegistry.INSTANCE.getSkillInstanceFor(val), t);
 	}
 
 	/**
@@ -43,10 +42,10 @@ public class SkillConstantExpression extends ConstantExpression {
 
 	@Override
 	public void collectMetaInformation(final GamlProperties meta) {
-		ISkill skill = (ISkill) value;
+		final ISkill skill = (ISkill) value;
 		meta.put(GamlProperties.PLUGINS, skill.getDefiningPlugin());
 		meta.put(skill instanceof IArchitecture ? GamlProperties.ARCHITECTURES : GamlProperties.SKILLS,
-			skill.getName());
+				skill.getName());
 	}
 
 }

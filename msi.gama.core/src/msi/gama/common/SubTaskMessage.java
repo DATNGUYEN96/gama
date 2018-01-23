@@ -1,10 +1,17 @@
-/**
- * Created by drogoul, 5 nov. 2014
+/*********************************************************************************************
  *
- */
+ * 'SubTaskMessage.java, in plugin msi.gama.core, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.common;
 
 import msi.gama.common.interfaces.IGui;
+import msi.gama.common.interfaces.IStatusMessage;
 import msi.gama.util.GamaColor;
 
 /**
@@ -32,17 +39,9 @@ public class SubTaskMessage implements IStatusMessage {
 	}
 
 	/**
-	 * Method isEmpty()
-	 * @see msi.gama.common.util.ThreadedUpdater.IUpdaterMessage#isEmpty()
-	 */
-	@Override
-	public boolean isEmpty() {
-		return false;
-	}
-
-	/**
 	 * Method getText()
-	 * @see msi.gama.common.IStatusMessage#getText()
+	 * 
+	 * @see msi.gama.common.interfaces.IStatusMessage#getText()
 	 */
 	@Override
 	public String getText() {
@@ -51,7 +50,8 @@ public class SubTaskMessage implements IStatusMessage {
 
 	/**
 	 * Method getCode()
-	 * @see msi.gama.common.IStatusMessage#getCode()
+	 * 
+	 * @see msi.gama.common.interfaces.IStatusMessage#getCode()
 	 */
 	@Override
 	public int getCode() {
@@ -68,7 +68,8 @@ public class SubTaskMessage implements IStatusMessage {
 
 	/**
 	 * Method getColor()
-	 * @see msi.gama.common.IStatusMessage#getColor()
+	 * 
+	 * @see msi.gama.common.interfaces.IStatusMessage#getColor()
 	 */
 	@Override
 	public GamaColor getColor() {

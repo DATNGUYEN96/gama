@@ -1,25 +1,25 @@
-/**
- * Created by drogoul, 8 avr. 2015
+/*********************************************************************************************
  *
- */
+ * 'SceneBuffer.java, in plugin ummisco.gama.opengl, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package ummisco.gama.opengl.scene;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import com.jogamp.opengl.GL2;
-
-import ummisco.gama.opengl.JOGLRenderer;
+import ummisco.gama.opengl.Abstract3DRenderer;
 
 /**
- * Class SceneBuffer. Manages the interactions between the updating and the
- * rendering tasks by keeping hold of three different scenes: - A back scene,
- * which is updated by the simulation - A front scene, which is displayed by the
- * renderer - A static scene, which maintains the static layers shared by these
- * two scenes
+ * Class SceneBuffer. Manages the interactions between the updating and the rendering tasks by keeping hold of three
+ * different scenes: - A back scene, which is updated by the simulation - A front scene, which is displayed by the
+ * renderer - A static scene, which maintains the static layers shared by these two scenes
  *
- * And making the appropriate swtiches between them when appropriate (beginning
- * and end of udpate, mainly)
+ * And making the appropriate swtiches between them when appropriate (beginning and end of udpate, mainly)
  *
  * @author drogoul
  * @since 8 avr. 2015
@@ -27,14 +27,14 @@ import ummisco.gama.opengl.JOGLRenderer;
  */
 public class SceneBuffer {
 
-	final JOGLRenderer renderer;
+	final Abstract3DRenderer renderer;
 	volatile ModelScene backScene;
 	volatile ModelScene staticScene;
 	volatile ModelScene frontScene;
 	private final Queue<ModelScene> garbage = new ConcurrentLinkedQueue<ModelScene>();
 
-	public SceneBuffer(final JOGLRenderer joglRenderer) {
-		this.renderer = joglRenderer;
+	public SceneBuffer(final Abstract3DRenderer renderer) {
+		this.renderer = renderer;
 	}
 
 	public boolean beginUpdatingScene() {
@@ -45,7 +45,6 @@ public class SceneBuffer {
 			try {
 				Thread.sleep(20);
 			} catch (final InterruptedException e) {
-				// e.printStackTrace();
 				return false;
 			}
 		}
@@ -62,13 +61,19 @@ public class SceneBuffer {
 		return true;
 	}
 
+	public boolean isNotReadyToUpdate() {
+		if (frontScene == null)
+			return false;
+		if (!frontScene.rendered())
+			return true;
+		return false;
+	}
+
 	public void endUpdatingScene() {
 		// If there is no scene to update, it means it has been cancelled by
 		// another thread (hiding/showing layers, most probably) so we just skip
 		// this step
-		if (backScene == null) {
-			return;
-		}
+		if (backScene == null) { return; }
 		// We ask the backScene to stop updating
 		backScene.endDrawingLayers();
 		// We create the static scene from it if it does not exist yet or if it
@@ -94,22 +99,11 @@ public class SceneBuffer {
 		frontScene = backScene;
 		// ... and clear the backScene
 		backScene = null;
-		// If we are synchronized with the simulation, we wait until this new
-		// frontScene has been rendered. 02/2016 Now taken in charge by the view
-		// while (renderer.data.isSynchronized() && !frontScene.rendered()) {
-		// try {
-		// Thread.sleep(20);
-		// } catch (InterruptedException e) {
-		// // e.printStackTrace();
-		// return;
-		// }
-		// }
 	}
 
 	/**
-	 * This method creates a new scene and copies to it the static layers from a
-	 * given existing scene. If no existing scene is passed, a completely new
-	 * scene is created
+	 * This method creates a new scene and copies to it the static layers from a given existing scene. If no existing
+	 * scene is passed, a completely new scene is created
 	 * 
 	 * @return a new scene
 	 */
@@ -148,7 +142,7 @@ public class SceneBuffer {
 	 * 
 	 * @param gl
 	 */
-	public void garbageCollect(final GL2 gl) {
+	public void garbageCollect(final OpenGL gl) {
 		final ModelScene[] scenes = garbage.toArray(new ModelScene[0]);
 		garbage.clear();
 		for (final ModelScene scene : scenes) {
@@ -158,8 +152,7 @@ public class SceneBuffer {
 	}
 
 	/**
-	 * Disposes the scene buffer by disposing the existing scenes (back,
-	 * rendered and static).
+	 * Disposes the scene buffer by disposing the existing scenes (back, rendered and static).
 	 */
 
 	public void dispose() {
@@ -178,14 +171,11 @@ public class SceneBuffer {
 	}
 
 	/**
-	 * Indication that the layers of the display have been changed in some way,
-	 * by hiding/showing layers. The static scene (which may contain some of
-	 * these layers) and the current back scene are discarded and their layers
+	 * Indication that the layers of the display have been changed in some way, by hiding/showing layers. The static
+	 * scene (which may contain some of these layers) and the current back scene are discarded and their layers
 	 * invalidated.
 	 */
 	public void layersChanged() {
-		// System.out.println("Asking the scene buffer to invalidate layers");
-		// FIXME What to do with the textures ?
 		if (staticScene != null) {
 			garbage.add(staticScene);
 			staticScene.invalidateLayers();
@@ -195,6 +185,7 @@ public class SceneBuffer {
 			garbage.add(backScene);
 			backScene = null;
 		}
+
 	}
 
 }

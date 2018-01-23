@@ -19,8 +19,7 @@ global torus: torus_environment{
 	int cohesion_factor <- 200;
 	int alignment_factor <- 100; 
 	//Variables for the movement of the boids
-	float minimal_distance <- 10.0; 
-	int maximal_turn <- 45 min: 0 max: 359; 
+	float minimal_distance <- 30.0; 
 	
 	int width_and_height_of_environment <- 1000;  
 	bool torus_environment <- false; 
@@ -40,9 +39,9 @@ global torus: torus_environment{
 	int ymax <- (width_and_height_of_environment - bounds);   
 	
 	//Action to move the goal to the mouse location
-	action move_goal(point mouse) {
+	action move_goal {
 		ask first(boids_goal) {
-			do goto target: mouse speed: 30;
+			do goto target: #user_location speed: 30.0;
 		}
 	}
 	
@@ -68,7 +67,7 @@ species boids_goal skills: [moving] {
 	
 	//If the mouse is not used, then the goal just wander
 	reflex wander {  
-		do  wander amplitude: 45 speed: 20;  
+		do  wander amplitude: 45 speed: 20.0;  
 	}
 	
 	aspect default {
@@ -134,6 +133,18 @@ species boids skills: [moving] {
 			} else if (location.y) > ymax {
 				velocity <- velocity - {0,bounds};
 			}
+		} else {
+			if (location.x) < 0.0 {
+				location <- {width_and_height_of_environment + location.x,location.y};
+			} else if (location.x) > width_and_height_of_environment {
+				location <- {location.x - width_and_height_of_environment ,location.y};
+			}
+			
+			if (location.y) < 0.0 {
+				location <- {location.x, width_and_height_of_environment + location.y};
+			} else if (location.y) > width_and_height_of_environment {
+				location <- {location.x,location.y - width_and_height_of_environment};
+			}
 			
 		}
 	}
@@ -159,6 +170,7 @@ species boids skills: [moving] {
 	//Reflex to apply the movement by calling the do_move action
 	reflex movement {
 		do do_move;
+		do bounding;
 	}
 	
 	aspect image {
@@ -203,7 +215,6 @@ experiment boids_gui type: gui {
 	parameter 'Cohesion Factor' var: cohesion_factor;
 	parameter 'Alignment Factor' var: alignment_factor; 
 	parameter 'Minimal Distance'  var: minimal_distance; 
-	parameter 'Maximal Turn'  var: maximal_turn; 
 	parameter 'Width/Height of the Environment' var: width_and_height_of_environment ;  
 	parameter 'Toroidal Environment ?'  var: torus_environment ; 
 	parameter 'Apply Cohesion ?' var: apply_cohesion ;

@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'LayerManager.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'LayerManager.java', in plugin 'msi.gama.application', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs.display;
@@ -37,8 +35,8 @@ import msi.gama.util.GamaColor;
  */
 public class LayerManager implements ILayerManager {
 
-	private final List<ILayer> enabledLayers = new ArrayList();
-	private final List<ILayer> disabledLayers = new ArrayList();
+	private final List<ILayer> enabledLayers = new ArrayList<>();
+	private final List<ILayer> disabledLayers = new ArrayList<>();
 	private OverlayLayer overlay = null;
 	final IDisplaySurface surface;
 	private int count = 0;
@@ -71,10 +69,21 @@ public class LayerManager implements ILayerManager {
 	}
 
 	@Override
-	public ILayer addLayer(final ILayer d) {
-		if (addItem(d)) {
-			return d;
+	public void recomputeBounds(final IGraphics g) {
+		final IScope scope = this.surface.getScope();
+		if (overlay != null)
+			overlay.recomputeBounds(g, scope);
+		for (final ILayer d : enabledLayers) {
+			d.recomputeBounds(g, scope);
 		}
+		for (final ILayer d : disabledLayers) {
+			d.recomputeBounds(g, scope);
+		}
+	}
+
+	@Override
+	public ILayer addLayer(final ILayer d) {
+		if (addItem(d)) { return d; }
 		return null;
 	}
 
@@ -87,7 +96,7 @@ public class LayerManager implements ILayerManager {
 
 	@Override
 	public List<ILayer> getLayersIntersecting(final int x, final int y) {
-		final List<ILayer> result = new ArrayList();
+		final List<ILayer> result = new ArrayList<>();
 		for (final ILayer display : enabledLayers) {
 			if (display.containsScreenPoint(x, y)) {
 				result.add(display);
@@ -110,8 +119,9 @@ public class LayerManager implements ILayerManager {
 			final Rectangle2D r = display.focusOn(geometry, s);
 			if (r != null) {
 				if (result == null)
-					result = new Rectangle2D.Double();
-				result.add(r);
+					result = new Rectangle2D.Double(r.getX(), r.getY(), r.getWidth(), r.getHeight());
+				else
+					result.add(r);
 			}
 		}
 		return result;
@@ -138,37 +148,34 @@ public class LayerManager implements ILayerManager {
 	}
 
 	@Override
-	public void enableLayer(final ILayer display, final Boolean enable) {
+	public void enableLayer(final ILayer layer, final Boolean enable) {
 
-		surface.runAndUpdate(new Runnable() {
-
-			@Override
-			public void run() {
-				if (enable) {
-					enable(display);
-				} else {
-					disable(display);
-				}
-				surface.layersChanged();
-
+		surface.runAndUpdate(() -> {
+			if (enable) {
+				enable(layer);
+			} else {
+				disable(layer);
 			}
+			for (final ILayer l : enabledLayers) {
+				l.forceRedrawingOnce();
+			}
+			surface.layersChanged();
+
 		});
 	}
 
 	@Override
 	public void drawLayersOn(final IGraphics g) {
-		final IScope scope = surface.getDisplayScope();
-		// If the experiment is already closed
-		if (scope == null || scope.interrupted()) {
+		if (g == null || g.cannotDraw())
 			return;
-		}
+		final IScope scope = surface.getScope();
+		// If the experiment is already closed
+		if (scope == null || scope.interrupted()) { return; }
 		scope.setGraphics(g);
 		try {
 			if (g.beginDrawingLayers()) {
 				for (int i = 0, n = enabledLayers.size(); i < n; i++) {
-					if (scope.interrupted()) {
-						return;
-					}
+					if (scope.interrupted()) { return; }
 					final ILayer dis = enabledLayers.get(i);
 					dis.drawDisplay(scope, g);
 				}
@@ -177,7 +184,7 @@ public class LayerManager implements ILayerManager {
 				}
 			}
 		} catch (final Exception e) {
-			scope.getGui().debug(e);
+			scope.getGui().debug(e.getMessage());
 		} finally {
 			g.endDrawingLayers();
 		}
@@ -185,7 +192,7 @@ public class LayerManager implements ILayerManager {
 
 	@Override
 	public List<ILayer> getItems() {
-		final List<ILayer> items = new ArrayList();
+		final List<ILayer> items = new ArrayList<>();
 		items.addAll(enabledLayers);
 		items.addAll(disabledLayers);
 		Collections.sort(items);
@@ -201,12 +208,10 @@ public class LayerManager implements ILayerManager {
 	}
 
 	@Override
-	public void pauseItem(final ILayer obj) {
-	}
+	public void pauseItem(final ILayer obj) {}
 
 	@Override
-	public void resumeItem(final ILayer obj) {
-	}
+	public void resumeItem(final ILayer obj) {}
 
 	@Override
 	public String getItemDisplayName(final ILayer obj, final String previousName) {
@@ -219,8 +224,7 @@ public class LayerManager implements ILayerManager {
 	}
 
 	@Override
-	public void focusItem(final ILayer obj) {
-	}
+	public void focusItem(final ILayer obj) {}
 
 	@Override
 	public boolean addItem(final ILayer obj) {
@@ -232,12 +236,10 @@ public class LayerManager implements ILayerManager {
 	}
 
 	@Override
-	public void updateItemValues() {
-	}
+	public void updateItemValues() {}
 
 	/**
-	 * Allows the layers to do some cleansing when the output of the display
-	 * changes
+	 * Allows the layers to do some cleansing when the output of the display changes
 	 * 
 	 * @see msi.gama.common.interfaces.ILayerManager#outputChanged()
 	 */
@@ -254,9 +256,7 @@ public class LayerManager implements ILayerManager {
 	@Override
 	public boolean stayProportional() {
 		for (final ILayer i : enabledLayers) {
-			if (i.stayProportional()) {
-				return true;
-			}
+			if (i.stayProportional()) { return true; }
 		}
 		return false;
 	}
@@ -264,8 +264,7 @@ public class LayerManager implements ILayerManager {
 	/**
 	 * Method makeItemSelectable()
 	 * 
-	 * @see msi.gama.common.interfaces.ItemList#makeItemSelectable(java.lang.Object,
-	 *      boolean)
+	 * @see msi.gama.common.interfaces.ItemList#makeItemSelectable(java.lang.Object, boolean)
 	 */
 	@Override
 	public void makeItemSelectable(final ILayer data, final boolean b) {
@@ -275,8 +274,7 @@ public class LayerManager implements ILayerManager {
 	/**
 	 * Method makeItemVisible()
 	 * 
-	 * @see msi.gama.common.interfaces.ItemList#makeItemVisible(java.lang.Object,
-	 *      boolean)
+	 * @see msi.gama.common.interfaces.ItemList#makeItemVisible(java.lang.Object, boolean)
 	 */
 	@Override
 	public void makeItemVisible(final ILayer obj, final boolean b) {
@@ -286,8 +284,7 @@ public class LayerManager implements ILayerManager {
 	/**
 	 * Method handleMenu()
 	 * 
-	 * @see msi.gama.common.interfaces.ItemList#handleMenu(java.lang.Object,
-	 *      int, int)
+	 * @see msi.gama.common.interfaces.ItemList#handleMenu(java.lang.Object, int, int)
 	 */
 	@Override
 	public Map<String, Runnable> handleMenu(final ILayer data, final int x, final int y) {
@@ -302,9 +299,7 @@ public class LayerManager implements ILayerManager {
 	@Override
 	public boolean isProvidingCoordinates() {
 		for (final ILayer i : enabledLayers) {
-			if (i.isProvidingCoordinates()) {
-				return true;
-			}
+			if (i.isProvidingCoordinates()) { return true; }
 		}
 		return false;
 	}
@@ -312,15 +307,12 @@ public class LayerManager implements ILayerManager {
 	/*
 	 * (non-Javadoc)
 	 *
-	 * @see
-	 * msi.gama.common.interfaces.ILayerManager#isProvidingWorldCoordinates()
+	 * @see msi.gama.common.interfaces.ILayerManager#isProvidingWorldCoordinates()
 	 */
 	@Override
 	public boolean isProvidingWorldCoordinates() {
 		for (final ILayer i : enabledLayers) {
-			if (i.isProvidingWorldCoordinates()) {
-				return true;
-			}
+			if (i.isProvidingWorldCoordinates()) { return true; }
 		}
 		return false;
 	}

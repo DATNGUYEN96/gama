@@ -1,18 +1,18 @@
 /*********************************************************************************************
  *
- *
- * 'MapExpression.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'MapExpression.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.expressions;
 
-import java.util.List;
 import java.util.Map;
+
+import com.google.common.collect.Iterables;
 
 import msi.gama.precompiler.GamlProperties;
 import msi.gama.runtime.IScope;
@@ -21,6 +21,9 @@ import msi.gama.util.GAML;
 import msi.gama.util.GamaMap;
 import msi.gama.util.GamaMapFactory;
 import msi.gama.util.GamaPair;
+import msi.gama.util.ICollector;
+import msi.gaml.descriptions.IDescription;
+import msi.gaml.descriptions.VariableDescription;
 import msi.gaml.types.GamaType;
 import msi.gaml.types.IType;
 import msi.gaml.types.Types;
@@ -30,9 +33,10 @@ import msi.gaml.types.Types;
  *
  * @author drogoul 23 août 07
  */
+@SuppressWarnings({ "unchecked", "rawtypes" })
 public class MapExpression extends AbstractExpression {
 
-	public static IExpression create(final List<? extends IExpression> elements) {
+	public static IExpression create(final Iterable<? extends IExpression> elements) {
 		final MapExpression u = new MapExpression(elements);
 		// if ( u.isConst() && GamaPreferences.CONSTANT_OPTIMIZATION.getValue()
 		// ) {
@@ -51,11 +55,12 @@ public class MapExpression extends AbstractExpression {
 	// private final GamaMap values;
 	// private boolean isConst, computed;
 
-	MapExpression(final List<? extends IExpression> pairs) {
-		keys = new IExpression[pairs.size()];
-		vals = new IExpression[pairs.size()];
-		for (int i = 0, n = pairs.size(); i < n; i++) {
-			final IExpression e = pairs.get(i);
+	MapExpression(final Iterable<? extends IExpression> pairs) {
+		final int size = Iterables.size(pairs);
+		keys = new IExpression[size];
+		vals = new IExpression[size];
+		int i = 0;
+		for (final IExpression e : pairs) {
 			if (e instanceof BinaryOperator) {
 				final BinaryOperator pair = (BinaryOperator) e;
 				keys[i] = pair.exprs[0];
@@ -67,11 +72,12 @@ public class MapExpression extends AbstractExpression {
 				keys[i] = GAML.getExpressionFactory().createConst(left, e.getType().getKeyType());
 				vals[i] = GAML.getExpressionFactory().createConst(right, e.getType().getContentType());
 			}
+			i++;
 		}
 		final IType keyType = GamaType.findCommonType(keys, GamaType.TYPE);
 		final IType contentsType = GamaType.findCommonType(vals, GamaType.TYPE);
 		// values = GamaMapFactory.create(keyType, contentsType, keys.length);
-		setName(pairs.toString());
+		// setName(pairs.toString());
 		type = Types.MAP.of(keyType, contentsType);
 	}
 
@@ -87,7 +93,7 @@ public class MapExpression extends AbstractExpression {
 		final IType keyType = GamaType.findCommonType(keys, GamaType.TYPE);
 		final IType contentsType = GamaType.findCommonType(vals, GamaType.TYPE);
 		// values = GamaMapFactory.create(keyType, contentsType, keys.length);
-		setName(pairs.toString());
+		// setName(pairs.toString());
 		type = Types.MAP.of(keyType, contentsType);
 	}
 
@@ -196,7 +202,7 @@ public class MapExpression extends AbstractExpression {
 	/**
 	 * Method collectPlugins()
 	 * 
-	 * @see msi.gaml.descriptions.IGamlDescription#collectPlugins(java.util.Set)
+	 * @see msi.gama.common.interfaces.IGamlDescription#collectPlugins(java.util.Set)
 	 */
 	@Override
 	public void collectMetaInformation(final GamlProperties meta) {
@@ -211,6 +217,22 @@ public class MapExpression extends AbstractExpression {
 				e.collectMetaInformation(meta);
 			}
 		}
+	}
+
+	@Override
+	public void collectUsedVarsOf(final IDescription species, final ICollector<VariableDescription> result) {
+		for (final IExpression e : keys) {
+			if (e != null) {
+				e.collectUsedVarsOf(species, result);
+			}
+		}
+
+		for (final IExpression e : vals) {
+			if (e != null) {
+				e.collectUsedVarsOf(species, result);
+			}
+		}
+
 	}
 
 }

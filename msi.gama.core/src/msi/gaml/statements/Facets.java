@@ -1,13 +1,12 @@
 /*********************************************************************************************
- * 
- * 
- * 'Facets.java', in plugin 'msi.gama.core', is part of the source code of the
+ *
+ * 'Facets.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
+ *
  **********************************************************************************************/
 package msi.gaml.statements;
 
@@ -19,7 +18,6 @@ import gnu.trove.map.hash.THashMap;
 import gnu.trove.procedure.TObjectObjectProcedure;
 import gnu.trove.procedure.TObjectProcedure;
 import msi.gama.common.interfaces.IGamlable;
-import msi.gama.common.interfaces.IKeyword;
 import msi.gama.common.util.StringUtils;
 import msi.gaml.descriptions.BasicExpressionDescription;
 import msi.gaml.descriptions.IDescription;
@@ -39,6 +37,8 @@ import msi.gaml.types.Types;
  */
 public class Facets extends THashMap<String, IExpressionDescription> implements IGamlable {
 
+	public static final Facets NULL = new Facets();
+
 	public Facets(final String... strings) {
 		if (strings != null) {
 			setUp(strings.length / 2);
@@ -53,7 +53,7 @@ public class Facets extends THashMap<String, IExpressionDescription> implements 
 	}
 
 	public Facets(final Facets facets) {
-		super(facets);
+		super(facets == null ? NULL : facets);
 	}
 
 	/*
@@ -66,7 +66,7 @@ public class Facets extends THashMap<String, IExpressionDescription> implements 
 			putIfAbsent(s, e);
 			return true;
 		}
-	};
+	}
 
 	public void complementWith(final Facets newFacets) {
 		newFacets.forEachEntry(new Complement());
@@ -95,11 +95,20 @@ public class Facets extends THashMap<String, IExpressionDescription> implements 
 		return null;
 	}
 
+	public String getFirstExistingAmong(final String... keys) {
+		for (final String s : keys) {
+			if (containsKey(s)) {
+				return s;
+			}
+		}
+		return null;
+	}
+
 	@Override
 	public String serialize(final boolean includingBuiltIn) {
 		final StringBuilder sb = new StringBuilder(size() * 20);
 		for (final Map.Entry<String, IExpressionDescription> e : entrySet()) {
-			if (e != null && e.getKey() != null && !e.getKey().equals(IKeyword.KEYWORD)) {
+			if (e != null && e.getKey() != null) {
 				final IExpressionDescription ed = e.getValue();
 				final String exprString = ed == null ? "N/A" : ed.serialize(includingBuiltIn);
 				sb.append(e.getKey()).append(": ").append(exprString).append(" ");
@@ -108,11 +117,11 @@ public class Facets extends THashMap<String, IExpressionDescription> implements 
 		return sb.toString();
 	}
 
-	public IType getTypeDenotedBy(final String key, final IDescription context) {
+	public IType<?> getTypeDenotedBy(final String key, final IDescription context) {
 		return getTypeDenotedBy(key, context, Types.NO_TYPE);
 	}
 
-	public IType getTypeDenotedBy(final String key, final IDescription context, final IType noType) {
+	public IType<?> getTypeDenotedBy(final String key, final IDescription context, final IType<?> noType) {
 		final IExpressionDescription f = get(key);
 		if (f == null) {
 			return noType;
@@ -162,27 +171,18 @@ public class Facets extends THashMap<String, IExpressionDescription> implements 
 		return f == null ? o == null : f.equalsString(o);
 	}
 
-	static TObjectFunction<IExpressionDescription, IExpressionDescription> cleanCopy = new TObjectFunction<IExpressionDescription, IExpressionDescription>() {
-
-		@Override
-		public IExpressionDescription execute(final IExpressionDescription value) {
-			return value.cleanCopy();
-		}
-	};
+	static TObjectFunction<IExpressionDescription, IExpressionDescription> cleanCopy = value -> value.cleanCopy();
 
 	public Facets cleanCopy() {
 		final Facets result = new Facets(this);
 		result.transformValues(cleanCopy);
+		result.compact();
 		return result;
 	}
 
-	static TObjectProcedure<IExpressionDescription> dispose = new TObjectProcedure<IExpressionDescription>() {
-
-		@Override
-		public boolean execute(final IExpressionDescription object) {
-			object.dispose();
-			return true;
-		}
+	static TObjectProcedure<IExpressionDescription> dispose = object -> {
+		object.dispose();
+		return true;
 	};
 
 	public void dispose() {

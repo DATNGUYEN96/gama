@@ -118,7 +118,7 @@ public class Conversation extends GamaList<FIPAMessage> {
 		initiator = message.getSender();
 
 		participants.addAll(message.getReceivers());
-		if (participants == null || participants.isEmpty() || participants.contains(null)) {
+		if (participants.isEmpty() || participants.contains(null)) {
 			throw new ProtocolErrorException(scope, "The message : " + message.toString() + " has no receivers.");
 		}
 
@@ -273,7 +273,7 @@ public class Conversation extends GamaList<FIPAMessage> {
 	 * @return the participants
 	 */
 	@getter(PARTICIPANTS)
-	public IList getParticipants() {
+	public IList<IAgent> getParticipants() {
 		return participants;
 	}
 

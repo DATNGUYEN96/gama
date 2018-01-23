@@ -1,35 +1,37 @@
 /*********************************************************************************************
+ *
+ * 'WorldProjection.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
  *
- * 'WorldProjection.java', in plugin 'msi.gama.core', is part of the source code of the 
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
  **********************************************************************************************/
 package msi.gama.metamodel.topology.projection;
 
+import javax.measure.converter.UnitConverter;
+
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateFilter;
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+
+import msi.gama.common.geometry.Envelope3D;
+import msi.gama.runtime.IScope;
 
 public class WorldProjection extends Projection {
 
 	public CoordinateFilter gisToAbsoluteTranslation, absoluteToGisTranslation;
+	
+	public CoordinateFilter otherUnitToMeter, meterToOtherUnit;
 
-	public WorldProjection(final CoordinateReferenceSystem crs, final Envelope env, final ProjectionFactory fact) {
-		super(null, crs, env, fact);
+	public WorldProjection(final IScope scope, final CoordinateReferenceSystem crs, final Envelope3D env,
+			final ProjectionFactory fact) {
+		super(scope, null, crs, env, fact);
 		// referenceProjection = this;
 		/*
-		 * Remove the translation: this one is computed only when the world
-		 * agent geometry is modified. if ( env != null ) {
-		 * createTranslations(projectedEnv.getMinX(), projectedEnv.getHeight(),
-		 * projectedEnv.getMinY()); }
+		 * Remove the translation: this one is computed only when the world agent geometry is modified. if ( env != null
+		 * ) { createTranslations(projectedEnv.getMinX(), projectedEnv.getHeight(), projectedEnv.getMinY()); }
 		 */
 	}
 
@@ -37,6 +39,7 @@ public class WorldProjection extends Projection {
 	public void translate(final Geometry geom) {
 		if (gisToAbsoluteTranslation != null) {
 			geom.apply(gisToAbsoluteTranslation);
+			geom.geometryChanged();
 		}
 	}
 
@@ -44,37 +47,63 @@ public class WorldProjection extends Projection {
 	public void inverseTranslate(final Geometry geom) {
 		if (absoluteToGisTranslation != null) {
 			geom.apply(absoluteToGisTranslation);
+			geom.geometryChanged();
+		}
+	}
+	
+
+	@Override
+	public void convertUnit(Geometry geom) {
+		if (otherUnitToMeter != null) {
+			geom.apply(otherUnitToMeter);
+			geom.geometryChanged();
+		}
+		
+	}
+
+	@Override
+	public void inverseConvertUnit(Geometry geom) {
+		if (meterToOtherUnit != null) {
+			geom.apply(meterToOtherUnit);
+			geom.geometryChanged();
 		}
 	}
 
-	public void updateTranslations(final Envelope env) {
+	public void updateTranslations(final Envelope3D env) {
 		if (env != null) {
 			projectedEnv = env;
 		}
 		createTranslations(projectedEnv.getMinX(), projectedEnv.getHeight(), projectedEnv.getMinY());
 	}
+	
+	public void updateUnit(final UnitConverter unitConverter) {
+		if (unitConverter != null)
+			createUnitTransformations(unitConverter);
+	}
 
 	public void createTranslations(final double minX, final double height, final double minY) {
-		// if (gisToAbsoluteTranslation != null && absoluteToGisTranslation !=
-		// null) {
-		// return;
-		// }
-		gisToAbsoluteTranslation = new CoordinateFilter() {
-
-			@Override
-			public void filter(final Coordinate coord) {
-				coord.x -= minX;
-				coord.y = -coord.y + height + minY;
-			}
+		gisToAbsoluteTranslation = coord -> {
+			coord.x -= minX;
+			coord.y = -coord.y + height + minY;
 		};
-		absoluteToGisTranslation = new CoordinateFilter() {
-
-			@Override
-			public void filter(final Coordinate coord) {
-				coord.x += minX;
-				coord.y = -coord.y + height + minY;
-			}
+		absoluteToGisTranslation = coord -> {
+			coord.x += minX;
+			coord.y = -coord.y + height + minY;
 		};
 	}
+	public void createUnitTransformations(final UnitConverter unitConverter) {
+		otherUnitToMeter = coord -> {
+			coord.x = unitConverter.convert(coord.x);
+			coord.y = unitConverter.convert(coord.y);
+			coord.z = unitConverter.convert(coord.z);
+		};
+		meterToOtherUnit = coord -> {
+			coord.x = unitConverter.inverse().convert(coord.x);
+			coord.y = unitConverter.inverse().convert(coord.y);
+			coord.z = unitConverter.inverse().convert(coord.z);
+		};
+	}
+	
+	
 
 }

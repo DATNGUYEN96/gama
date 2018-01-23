@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'AbstractDisplayGraphics.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and
+ * simulation platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'AbstractDisplayGraphics.java', in plugin 'msi.gama.application', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs.display;
@@ -26,16 +24,22 @@ public abstract class AbstractDisplayGraphics implements IGraphics {
 
 	protected final Rectangle2D rect = new Rectangle2D.Double(0, 0, 1, 1);
 	protected static final GamaPoint origin = new GamaPoint(0, 0);
-	protected double currentAlpha = 1;
-	public final LayeredDisplayData data;
-	protected final IDisplaySurface surface;
-	protected boolean highlight = false;
+	protected double currentLayerAlpha = 1;
+	public LayeredDisplayData data;
+	protected IDisplaySurface surface;
+	public boolean highlight = false;
 
 	protected ILayer currentLayer;
 
-	public AbstractDisplayGraphics(final IDisplaySurface surface) {
+	@Override
+	public void setDisplaySurface(final IDisplaySurface surface) {
 		this.surface = surface;
 		data = surface.getData();
+	}
+
+	@Override
+	public boolean isNotReadyToUpdate() {
+		return surface.isDisposed();
 	}
 
 	@Override
@@ -56,12 +60,11 @@ public abstract class AbstractDisplayGraphics implements IGraphics {
 	@Override
 	public void setOpacity(final double alpha) {
 		// 1 means opaque ; 0 means transparent
-		currentAlpha = alpha;
+		currentLayerAlpha = alpha;
 	}
 
 	protected final double xFromModelUnitsToPixels(final double mu) {
-		return getXOffsetInPixels()
-				+ getxRatioBetweenPixelsAndModelUnits() * mu /* + 0.5 */;
+		return getXOffsetInPixels() + getxRatioBetweenPixelsAndModelUnits() * mu /* + 0.5 */;
 	}
 
 	protected final double yFromModelUnitsToPixels(final double mu) {
@@ -78,11 +81,8 @@ public abstract class AbstractDisplayGraphics implements IGraphics {
 
 	@Override
 	public double getxRatioBetweenPixelsAndModelUnits() {
-		if (currentLayer == null) {
-			return getDisplayWidth() / data.getEnvWidth();
-		} else {
-			return currentLayer.getSizeInPixels().x / data.getEnvWidth();
-		}
+		if (currentLayer == null) { return getDisplayWidth() / data.getEnvWidth(); }
+		return currentLayer.getSizeInPixels().x / data.getEnvWidth();
 	}
 
 	@Override
@@ -122,8 +122,7 @@ public abstract class AbstractDisplayGraphics implements IGraphics {
 	}
 
 	@Override
-	public void endDrawingLayers() {
-	}
+	public void endDrawingLayers() {}
 
 	@Override
 	public Double getZoomLevel() {

@@ -30,7 +30,7 @@ global {
 			//We set the name of the client equals to the pseudo of the user
 			name<-pseudo;
 			//We connect the client to the server written IP Adress, with the server port, and the type of protocol (must be the same that server but with client, like x_client and x_server)
-			do connect to:"127.0.0.1" protocol:"tcp_client" port:"3001" with_name:pseudo;
+			do connect to:"127.0.0.1" protocol:"tcp_client" port:3001 with_name:pseudo;
 			theUser<-self;
 			//Set the message to send to the server equals to 'Connexion:pseudo' to say to the server  that we are a new client connected
 			myMessage<-"Connexion:"+pseudo;
@@ -45,31 +45,31 @@ global {
 		}
 	}
 	//Action launched when the key to go up is pressed, and add it to the message that will be sent to the server to compute locution
-	action doUp(point mLUseless, list<agent> sAUseless)
+	action doUp//(point mLUseless, list<agent> sAUseless)
 	{
 		theUser.myMessage<-theUser.myMessage+":up";
 	}
 	
 	//Action launched when the key to go left is pressed, and add it to the message that will be sent to the server to compute locution
-	action doLeft(point mLUseless, list<agent> sAUseless)
+	action doLeft//(point mLUseless, list<agent> sAUseless)
 	{
 		theUser.myMessage<-theUser.myMessage+":left";
 	}
 	
 	//Action launched when the key to go right is pressed, and add it to the message that will be sent to the server to compute locution
-	action doRight(point mLUseless, list<agent> sAUseless)
+	action doRight//(point mLUseless, list<agent> sAUseless)
 	{
 		theUser.myMessage<-theUser.myMessage+":right";
 	}
 	
 	//Action launched when the key to fire to the left is pressed, and add it to the message that will be sent to the server to compute locution
-	action doBulletLeft(point mLUseless, list<agent> sAUseless)
+	action doBulletLeft//(point mLUseless, list<agent> sAUseless)
 	{
 		theUser.myMessage<-theUser.myMessage+":bulletleft";
 	}
 	
 	//Action launched when the key to fire to the right is pressed, and add it to the message that will be sent to the server to compute locution
-	action doBulletRight(point mLUseless, list<agent> sAUseless)
+	action doBulletRight//(point mLUseless, list<agent> sAUseless)
 	{
 		theUser.myMessage<-theUser.myMessage+":bulletright";
 	}
@@ -319,10 +319,10 @@ experiment launchClient type: gui {
 			event["q"] action: doBulletLeft;
 			event["e"] action: doBulletRight;
 			*/
-			event["z"] action: doUp;
-			event["q"] action: doLeft;
+			event["w"] action: doUp;
+			event["a"] action: doLeft;
 			event["d"] action: doRight;
-			event["a"] action: doBulletLeft;
+			event["q"] action: doBulletLeft;
 			event["e"] action: doBulletRight;
 		}
 	}

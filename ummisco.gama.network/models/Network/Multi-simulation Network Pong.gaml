@@ -29,13 +29,13 @@ global skills:[network]{
 		}
 	}
 	
-	reflex updateSimulation when:has_received_message(){
-		map mess <- fetch_message();
-		write simulationName + ": "+ mess ;
+	reflex updateSimulation when:has_more_message(){
+		message mess <- fetch_message();
+		write simulationName + ": "+ mess.contents ;
 	}
 	
 	action teletransportation (NetworkingAgent a, string s){
-	  do send_message to:s content:a;
+	  do send to:s contents:a;
 	}
 }
 
@@ -82,7 +82,7 @@ species NetworkingAgent skills:[moving]{
    }
       
    reflex update{
-     do goto target:target_loc speed:10;
+     do goto target:target_loc speed:10.0;
    }	
    aspect base{
    	draw shape color:color;

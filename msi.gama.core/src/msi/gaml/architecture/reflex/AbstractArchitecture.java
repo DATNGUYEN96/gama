@@ -1,21 +1,19 @@
 /*********************************************************************************************
  *
- *
- * 'AbstractArchitecture.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'AbstractArchitecture.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.architecture.reflex;
 
 import msi.gama.runtime.IScope;
 import msi.gaml.architecture.IArchitecture;
-import msi.gaml.descriptions.IDescription;
 import msi.gaml.expressions.IExpression;
-import msi.gaml.skills.*;
+import msi.gaml.skills.Skill;
 import msi.gaml.species.ISpecies;
 
 public abstract class AbstractArchitecture extends Skill implements IArchitecture {
@@ -25,13 +23,12 @@ public abstract class AbstractArchitecture extends Skill implements IArchitectur
 	}
 
 	@Override
-	public IArchitecture duplicate() {
-		ISkill duplicate = Skill.Factory.create(getName(), getClass(), getDefiningPlugin());
-		return (IArchitecture) duplicate;
+	public String serialize(final boolean includingBuiltIn) {
+		return getName();
 	}
 
 	@Override
-	public String serialize(final boolean includingBuiltIn) {
+	public String getKeyword() {
 		return getName();
 	}
 
@@ -41,12 +38,7 @@ public abstract class AbstractArchitecture extends Skill implements IArchitectur
 	}
 
 	@Override
-	public IDescription getDescription() {
-		return null;
-	}
-
-	@Override
-	public IExpression getFacet(final String ... key) {
+	public IExpression getFacet(final String... key) {
 		return null;
 	}
 
@@ -56,9 +48,11 @@ public abstract class AbstractArchitecture extends Skill implements IArchitectur
 	}
 
 	@Override
-	public void verifyBehaviors(final ISpecies context) {}
+	public void verifyBehaviors(final ISpecies context) {
+	}
 
 	@Override
-	public void dispose() {}
+	public void dispose() {
+	}
 
 }

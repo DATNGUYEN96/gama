@@ -1,39 +1,25 @@
 /*********************************************************************************************
  *
+ * 'StatementDescription.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'StatementDescription.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.descriptions;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
 
-import gnu.trove.procedure.TObjectObjectProcedure;
 import msi.gama.common.interfaces.IGamlIssue;
 import msi.gama.common.interfaces.IKeyword;
 import msi.gama.util.GAML;
-import msi.gama.util.TOrderedHashMap;
-import msi.gaml.compilation.ISymbol;
-import msi.gaml.descriptions.SymbolSerializer.StatementSerializer;
 import msi.gaml.expressions.IExpression;
 import msi.gaml.expressions.IOperator;
 import msi.gaml.expressions.IVarExpression;
-import msi.gaml.expressions.SpeciesConstantExpression;
-import msi.gaml.factories.ChildrenProvider;
-import msi.gaml.factories.DescriptionFactory;
 import msi.gaml.statements.Arguments;
 import msi.gaml.statements.DoStatement;
 import msi.gaml.statements.Facets;
@@ -47,219 +33,110 @@ import msi.gaml.types.Types;
  * @todo Description
  *
  */
-
+@SuppressWarnings ({ "rawtypes" })
 public class StatementDescription extends SymbolDescription {
 
-	public static class StatementWithChildrenDescription extends StatementDescription {
-
-		protected List<IDescription> children;
-
-		public StatementWithChildrenDescription(final String keyword, final IDescription superDesc,
-				final ChildrenProvider cp, final boolean hasScope, final boolean hasArgs, final EObject source,
-				final Facets facets) {
-			super(keyword, superDesc, cp, hasScope, hasArgs, source, facets);
-		}
-
-		@Override
-		public List<IDescription> getChildren() {
-			if (children == null) {
-				children = new ArrayList();
-			}
-			return children;
-		}
-
-		@Override
-		public void dispose() {
-			if (children != null) {
-				for (final IDescription c : children) {
-					c.dispose();
-				}
-				children.clear();
-			}
-		}
-
-		@Override
-		public IDescription addChild(final IDescription child) {
-			getChildren().add(child);
-			return super.addChild(child);
-		}
-
-		@Override
-		public StatementDescription copy(final IDescription into) {
-			final List<IDescription> children = new ArrayList();
-			for (final IDescription child : getChildren()) {
-				children.add(child.copy(into));
-			}
-			if (args != null) {
-				for (final IDescription child : args.values()) {
-					children.add(child.copy(into));
-				}
-			}
-			final StatementDescription desc = new StatementWithChildrenDescription(getKeyword(), into,
-					new ChildrenProvider(children), temps != null, args != null, element, facets.cleanCopy());
-			desc.originName = originName;
-			return desc;
-		}
-
-	}
-
-	protected final Map<String, IVarExpression> temps;
-	protected final Map<String, StatementDescription> args;
-
+	// Corresponds to the "with" facet
+	protected final Arguments passedArgs;
 	private static int COMMAND_INDEX = 0;
 
-	private IDescription previousDescription;
+	/**
+	 * @deprecated This method should not be used. It defers automatically to the other constructor, which does not take
+	 *             children into account. IF children need to be passed, call addChildren() after
+	 */
+	@Deprecated
+	public StatementDescription(final String keyword, final IDescription superDesc, final boolean hasArgs,
+			final Iterable<IDescription> children, final EObject source, final Facets facets,
+			final Arguments alreadyComputedArgs) {
+		this(keyword, superDesc, hasArgs, source, facets, alreadyComputedArgs);
+	}
 
-	public StatementDescription(final String keyword, final IDescription superDesc, final ChildrenProvider cp,
-			final boolean hasScope, final boolean hasArgs, final EObject source, final Facets facets) {
-		super(keyword, superDesc, cp, source, facets);
-		temps = hasScope ? new TOrderedHashMap() : null;
-		args = hasArgs ? new TOrderedHashMap() : null;
-		if (hasArgs) {
-			collectArgs();
-		}
+	public StatementDescription(final String keyword, final IDescription superDesc, final boolean hasArgs,
+			/* final Iterable<IDescription> children, */ final EObject source, final Facets facets,
+			final Arguments alreadyComputedArgs) {
+		super(keyword, superDesc, source, /* children, */ facets);
+		passedArgs = alreadyComputedArgs != null ? alreadyComputedArgs : hasArgs ? createArgs() : null;
 	}
 
 	@Override
-	protected StatementSerializer createSerializer() {
-		return new StatementSerializer();
+	protected SymbolSerializer<? extends SymbolDescription> createSerializer() {
+		return STATEMENT_SERIALIZER;
 	}
 
 	@Override
 	public void dispose() {
-		if ( /* isDisposed || */isBuiltIn()) {
-			return;
-		}
-		if (temps != null) {
-			temps.clear();
-		}
-		if (args != null) {
-			args.clear();
-		}
-		previousDescription = null;
+		if (isBuiltIn()) { return; }
 		super.dispose();
-		// isDisposed = true;
+
+		if (passedArgs != null)
+			passedArgs.dispose();
 	}
 
-	@Override
-	public void copyTempsAbove() {
-		IDescription d = getEnclosingDescription();
-		while (d != null && d instanceof StatementDescription) {
-			if (((StatementDescription) d).hasTemps()) {
-				temps.putAll(((StatementDescription) d).temps);
-			}
-			d = d.getEnclosingDescription();
-		}
-	}
-
-	private void collectArgs() {
-		for (final Iterator<IDescription> it = getChildren().iterator(); it.hasNext();) {
-			final IDescription c = it.next();
-			if (c.getKeyword().equals(ARG)) {
-				args.put(c.getName(), (StatementDescription) c);
-				it.remove();
-			}
-		}
-		explodeArgs();
-		exploreArgs();
-	}
-
-	// Only for "do". Explore the facets that may play the role of arguments
-	private void exploreArgs() {
-		if (!getKeyword().equals(DO)) {
-			return;
-		}
-		// final List<String> removed = new ArrayList();
-		facets.forEachEntry(new TObjectObjectProcedure<String, IExpressionDescription>() {
-
-			@Override
-			public boolean execute(final String facet, final IExpressionDescription b) {
-				if (!DoStatement.DO_FACETS.contains(facet)) {
-					args.put(facet, createArg(facet, b));
-					// removed.add(facet);
-				}
-				return true;
-			}
-		});
-		// for ( String s : removed ) {
-		// facets.remove(s);
-		// }
-	}
-
-	private StatementDescription createArg(final String n, final IExpressionDescription v) {
-		final Facets f = new Facets(NAME, n);
-		f.put(VALUE, v);
-		final StatementDescription a = (StatementDescription) DescriptionFactory.create(ARG, this,
-				ChildrenProvider.NONE, f);
-		return a;
-	}
-
-	// Transforms the arguments passed with the "with:" facets into "arg"
-	// statements
-	private void explodeArgs() {
-		if (getKeyword().equals(ACTION) || getKeyword().equals(PRIMITIVE)) {
-			return;
-		}
-		for (final Map.Entry<String, IExpressionDescription> arg : msi.gama.util.GAML.getExpressionFactory()
-				.createArgumentMap(getAction(), facets.get(WITH), this).entrySet()) {
-			final String name = arg.getKey();
-			args.put(name, createArg(name, arg.getValue()));
-		}
-		// FIXME We should not play with the facets like this. Commented for the
-		// moment unless it creates problems.
-		// facets.remove(WITH);
-	}
-
-	private StatementDescription getAction() {
-		final String actionName = getFacets().getLabel(IKeyword.ACTION);
-		if (actionName == null) {
+	private Arguments createArgs() {
+		if (!hasFacets())
 			return null;
+		if (!hasFacet(WITH)) {
+			if (!isInvocation())
+				return null;
+			if (hasFacetsNotIn(DoStatement.DO_FACETS)) {
+				final Arguments args = new Arguments();
+				visitFacets(new FacetVisitor() {
+
+					@Override
+					public final boolean visit(final String facet, final IExpressionDescription b) {
+						if (!DoStatement.DO_FACETS.contains(facet)) {
+							args.put(facet, b);
+						}
+						return true;
+					}
+				});
+				return args;
+			} else
+				return null;
+		} else {
+			try {
+				return GAML.getExpressionFactory().createArgumentMap(getAction(), getFacet(WITH), this);
+			} finally {
+				removeFacets(WITH);
+			}
 		}
-		final TypeDescription declPlace = (TypeDescription) getDescriptionDeclaringAction(actionName);
-		StatementDescription executer = null;
+
+	}
+
+	public boolean isSuperInvocation() {
+		return IKeyword.INVOKE.equals(keyword);
+	}
+
+	private boolean isInvocation() {
+		return IKeyword.DO.equals(keyword) || isSuperInvocation();
+	}
+
+	private ActionDescription getAction() {
+		final String actionName = getLitteral(IKeyword.ACTION);
+		if (actionName == null) { return null; }
+		final TypeDescription declPlace =
+				(TypeDescription) getDescriptionDeclaringAction(actionName, isSuperInvocation());
+		ActionDescription executer = null;
 		if (declPlace != null) {
 			executer = declPlace.getAction(actionName);
 		}
 		return executer;
 	}
 
-	public IVarExpression addNewTempIfNecessary(final String facetName, final IType type) {
-		final String varName = facets.getLabel(facetName);
-		if (getKeyword().equals(LOOP) && facetName.equals(NAME)) {
-			// Case of loops: the variable is inside the loop (not outside)
-			return (IVarExpression) addTemp(this, varName, type);
-		}
-
-		final IDescription sup = getEnclosingDescription();
-		if (!(sup instanceof StatementDescription)) {
-			error("Impossible to return " + facets.getLabel(facetName), IGamlIssue.GENERAL);
-			return null;
-		}
-		return (IVarExpression) ((StatementDescription) sup).addTemp(this, varName, type);
-	}
-
 	@Override
 	public StatementDescription copy(final IDescription into) {
-		final List<IDescription> children = new ArrayList();
-		for (final IDescription child : getChildren()) {
-			children.add(child.copy(into));
-		}
-		if (args != null) {
-			for (final IDescription child : args.values()) {
-				children.add(child.copy(into));
-			}
-		}
-		final StatementDescription desc = new StatementDescription(getKeyword(), into, new ChildrenProvider(children),
-				temps != null, args != null, element, facets.cleanCopy());
-		desc.originName = originName;
+		final StatementDescription desc = new StatementDescription(getKeyword(), into, false, /* null, */ element,
+				getFacetsCopy(), passedArgs == null ? null : passedArgs.cleanCopy());
+		desc.originName = getOriginName();
 		return desc;
 	}
 
+	@Override
 	public boolean manipulatesVar(final String name) {
 		if (getKeyword().equals(EQUATION)) {
 			final Iterable<IDescription> equations = getChildrenWithKeyword(EQUATION_OP);
 			for (final IDescription equation : equations) {
-				final IExpressionDescription desc = equation.getFacets().get(EQUATION_LEFT);
+				final IExpressionDescription desc = equation.getFacet(EQUATION_LEFT);
 				desc.compile(equation);
 				final IExpression exp = desc.getExpression();
 				if (exp instanceof IOperator) {
@@ -274,168 +151,18 @@ public class StatementDescription extends SymbolDescription {
 		return false;
 	}
 
-	@Override
-	public boolean hasVar(final String name) {
-		return temps != null && temps.containsKey(name);
-	}
-
-	@Override
-	public IExpression addTemp(final IDescription declaration, final String name, final IType type) {
-		// TODO Should separate validation from execution, here.
-
-		if (temps == null) {
-			if (getEnclosingDescription() == null) {
-				return null;
-			}
-			if (!(getEnclosingDescription() instanceof StatementDescription)) {
-				return null;
-			}
-
-			return ((StatementDescription) getEnclosingDescription()).addTemp(declaration, name, type);
-		}
-		final String kw = getKeyword();
-		final String facet = kw == IKeyword.LET || kw == IKeyword.LOOP ? IKeyword.NAME : IKeyword.RETURNS;
-
-		if (temps.containsKey(name) && !name.equals(MYSELF)) {
-			declaration.warning("This declaration of " + name + " shadows a previous declaration",
-					IGamlIssue.SHADOWS_NAME, facet);
-		}
-		final SpeciesDescription sd = declaration.getSpeciesContext();
-		final ModelDescription md = declaration.getModelDescription();
-		if (sd != null && sd != md && sd.hasVar(name)) {
-			declaration.warning(
-					"This declaration of " + name + " shadows the declaration of an attribute of " + sd.getName(),
-					IGamlIssue.SHADOWS_NAME, facet);
-		}
-		if (md != null && md.hasVar(name)) {
-			declaration.warning("This declaration of " + name + " shadows the declaration of a global attribute",
-					IGamlIssue.SHADOWS_NAME, facet);
-		}
-		final IExpression result = msi.gama.util.GAML.getExpressionFactory().createVar(name, type, false,
-				IVarExpression.TEMP, this);
-		temps.put(name, (IVarExpression) result);
-		return result;
-	}
-
-	@Override
-	public IExpression getVarExpr(final String name, final boolean asField) {
-		if (temps != null) {
-			return temps.get(name);
-		}
-		return null;
-	}
-
-	public boolean verifyArgs(final IDescription caller, final Arguments names) {
-
-		// scope.getGui().debug(this.toString() + " called by " + caller + "
-		// with " + names);
-		// if ( args == null ) { return; }
-		final Set<String> allArgs = args == null ? Collections.EMPTY_SET : args.keySet();
-		if (caller.getKeyword().equals(DO)) {
-			// If the names were not known at the time of the creation of the
-			// caller, only the order
-			if (names.containsKey("0")) {
-				int index = 0;
-				for (final String name : allArgs) {
-					final String key = String.valueOf(index++);
-					final IExpressionDescription old = names.get(key);
-					if (old != null) {
-						names.put(name, old);
-						names.remove(key);
-					}
-				}
-			}
-		}
-
-		// We compute the list of mandatory args
-		final List<String> mandatoryArgs = new ArrayList();
-		if (args != null) {
-			for (final IDescription c : args.values()) {
-				final String n = c.getName();
-				final Facets argFacets = c.getFacets();
-				if (argFacets.containsKey(DEFAULT)) {
-					// AD: we compile the default (which is, otherwise, not
-					// computed before validation
-					argFacets.get(DEFAULT).compile(this);
-					continue;
-				}
-				if (c.getFacets().containsKey(OPTIONAL) && c.getFacets().get(OPTIONAL).equalsString(FALSE)
-						|| !c.getFacets().containsKey(OPTIONAL)) {
-					mandatoryArgs.add(n);
-				}
-			}
-		}
-		// If one is missing in the arguments passed, we raise an error
-		// (except for primitives for the moment)
-		// if ( !getKeyword().equals(PRIMITIVE) ) {
-		// AD: Change in the policy regarding primitives; if it is not stated,
-		// the arguments are now considered as
-		// optional.
-		for (final String arg : mandatoryArgs) {
-			if (!names.containsKey(arg)) {
-				caller.error(
-						"Missing argument " + arg + " in call to " + getName() + ". Arguments passed are : " + names,
-						IGamlIssue.MISSING_ARGUMENT, caller.getUnderlyingElement(null), new String[] { arg });
-				return false;
-			}
-		}
-		// }
-		for (final Map.Entry<String, IExpressionDescription> arg : names.entrySet()) {
-			// A null value indicates a previous compilation error in the
-			// arguments
-			if (arg != null) {
-				final String name = arg.getKey();
-				if (!allArgs.contains(name)) {
-					caller.error("Unknown argument " + name + " in call to " + getName(), IGamlIssue.UNKNOWN_ARGUMENT,
-							arg.getValue().getTarget(), new String[] { arg.getKey() });
-					return false;
-				} else if (arg.getValue() != null && arg.getValue().getExpression() != null) {
-					final IType formalType = args.get(name).getType();
-					final IType callerType = arg.getValue().getExpression().getType();
-					if (Types.intFloatCase(formalType, callerType)) {
-						caller.warning("The argument " + name + " (of type " + callerType + ") will be casted to "
-								+ formalType, IGamlIssue.WRONG_TYPE, arg.getValue().getTarget());
-					} else {
-						boolean accepted = formalType == Types.NO_TYPE || callerType.isTranslatableInto(formalType);
-						accepted = accepted || callerType == Types.NO_TYPE && formalType.getDefault() == null;
-						if (!accepted) {
-							caller.error("The type of argument " + name + " should be " + formalType,
-									IGamlIssue.WRONG_TYPE);
-							return false;
-						}
-					}
-				}
-			}
-		}
-		return true;
-	}
-
-	public boolean verifyArgs(final String actionName, final Arguments args) {
-		final StatementDescription executer = getAction();
-		if (executer == null) {
-			return false;
-		}
+	public boolean verifyArgs(final Arguments args) {
+		final ActionDescription executer = getAction();
+		if (executer == null) { return false; }
 		return executer.verifyArgs(this, args);
 	}
 
-	public Collection<StatementDescription> getArgs() {
-		return args == null ? Collections.EMPTY_SET : args.values();
+	public Iterable<IDescription> getFormalArgs() {
+		return getChildrenWithKeyword(ARG);
 	}
 
-	public boolean hasTemps() {
-		return temps != null;
-	}
-
-	public boolean hasArgs() {
-		return args != null;
-
-	}
-
-	public boolean containsArg(final String s) {
-		if (args == null) {
-			return false;
-		}
-		return args.containsKey(s);
+	public Facets getPassedArgs() {
+		return passedArgs == null ? Facets.NULL : passedArgs;
 	}
 
 	@Override
@@ -451,7 +178,7 @@ public class StatementDescription extends SymbolDescription {
 				}
 				s = INTERNAL + getKeyword() + String.valueOf(COMMAND_INDEX++);
 			}
-			facets.putAsLabel(NAME, s);
+			setName(s);
 		}
 		return s;
 	}
@@ -461,20 +188,12 @@ public class StatementDescription extends SymbolDescription {
 		return getKeyword() + " " + getName();
 	}
 
-	/**
-	 * @return
-	 */
-	public List<String> getArgNames() {
-		return args == null ? Collections.EMPTY_LIST : new ArrayList(args.keySet());
-	}
-
 	@Override
 	public String getTitle() {
 		final String kw = getKeyword();
-		// kw = Character.toUpperCase(kw.charAt(0)) + kw.substring(1);
 		String name = getName();
 		if (name.contains(INTERNAL)) {
-			name = facets.getLabel(ACTION);
+			name = getLitteral(ACTION);
 			if (name == null) {
 				name = "statement";
 			}
@@ -483,223 +202,113 @@ public class StatementDescription extends SymbolDescription {
 		if (getMeta().isTopLevel()) {
 			final IDescription d = getEnclosingDescription();
 			if (d == null) {
-				in = " defined in " + originName;
+				in = " defined in " + getOriginName();
 			} else {
 				in = " of " + d.getTitle();
 			}
 		}
-		return kw + " " + getName() + " " + in;
+		return kw + " " + name + " " + in;
 	}
 
-	/**
-	 * @return
-	 */
-	public boolean isAbstract() {
-		return TRUE.equals(facets.getLabel(VIRTUAL));
-		// return !getKeyword().equals(PRIMITIVE) && getChildren().isEmpty();
-	}
+	public void collectAllStatements(final String keyword, final Set<StatementDescription> returns) {
 
-	public void collectChildren(final String keyword, final Set<StatementDescription> returns) {
-		if (getKeyword().equals(keyword)) {
-			returns.add(this);
-		} else/* if ( children != null ) */ {
-			for (final IDescription child : getChildren()) {
-				if (child instanceof StatementDescription) {
-					((StatementDescription) child).collectChildren(keyword, returns);
+		visitChildren(new DescriptionVisitor() {
+
+			@Override
+			public boolean visit(final IDescription desc) {
+				if (desc instanceof StatementDescription) {
+					if (desc.getKeyword().equals(keyword)) {
+						returns.add((StatementDescription) desc);
+					}
+					if (desc instanceof StatementWithChildrenDescription)
+						((StatementWithChildrenDescription) desc).visitChildren(this);
 				}
+				return true;
 			}
-		}
+		});
+
 	}
 
 	@Override
-	public void setEnclosingDescription(final IDescription desc) {
-		previousDescription = getEnclosingDescription();
-		super.setEnclosingDescription(desc);
-	}
-
-	@Override
-	public ModelDescription getModelDescription() {
-		ModelDescription result = super.getModelDescription();
-		if (result == null && previousDescription != null) {
-			result = previousDescription.getModelDescription();
-		}
+	public IDescription validate() {
+		if (validated)
+			return this;
+		final IDescription result = super.validate();
+		if (passedArgs != null)
+			validatePassedArgs();
 		return result;
 	}
 
-	@Override
-	public IDescription getDescriptionDeclaringVar(final String name) {
-		IDescription result = super.getDescriptionDeclaringVar(name);
-		if (result == null && previousDescription != null) {
-			result = previousDescription.getDescriptionDeclaringVar(name);
-		}
-		return result;
-	}
+	public Arguments validatePassedArgs() {
+		final IDescription superDesc = getEnclosingDescription();
+		passedArgs.forEachEntry(new FacetVisitor() {
 
-	@Override
-	public IDescription getDescriptionDeclaringAction(final String name) {
-		IDescription result = super.getDescriptionDeclaringAction(name);
-		if (result == null && previousDescription != null) {
-			result = previousDescription.getDescriptionDeclaringAction(name);
-		}
-		return result;
-	}
-
-	@Override
-	public void validateChildren() {
-		if (hasArgs()) {
-			validateArgs();
-		}
-		IDescription previousEnclosingDescription = null;
-		if (getMeta().isRemoteContext()) {
-			final SpeciesDescription actualSpecies = computeSpecies();
-			if (actualSpecies != null) {
-				final SpeciesDescription s = getSpeciesContext();
-				if (s != null) {
-					final IType t = s.getType();
-					addTemp(this, MYSELF, t);
-					previousEnclosingDescription = getEnclosingDescription();
-					setEnclosingDescription(actualSpecies);
-
-					// FIXME ===> Model Description is lost if we are dealing
-					// with a built-in species !
-				}
+			@Override
+			public boolean visit(final String name, final IExpressionDescription exp) {
+				if (exp != null)
+					exp.compile(superDesc);
+				return true;
 			}
-		}
-		super.validateChildren();
-		if (previousEnclosingDescription != null) {
-			setEnclosingDescription(previousEnclosingDescription);
-		}
-	}
-
-	@Override
-	public List<? extends ISymbol> compileChildren() {
-		if (getMeta().isRemoteContext()) {
-			final SpeciesDescription actualSpecies = computeSpecies();
-			if (actualSpecies != null) {
-				final IType t = getSpeciesContext().getType();
-				addTemp(this, MYSELF, t);
-				setEnclosingDescription(actualSpecies);
-			}
-		}
-		return super.compileChildren();
-	}
-
-	public SpeciesDescription computeSpecies() {
-
-		// TODO is there a way to extract the species from a constant expression
-		// (like
-		// species("ant")) ? cf. Issue 145
-		final IExpressionDescription ed = facets.getDescr(SPECIES, AS, TARGET);
-		if (ed == null) {
-			return null;
-		}
-		IExpression facet = ed.getExpression();
-		// We try to compute as much as possible, for example if the facet is
-		// not compiled yet (see Issue 618)
-		if (facet == null) {
-			facet = GAML.getExpressionFactory().createExpr(ed, this);
-		}
-
-		// final IExpression facet = facets.getExpr(SPECIES, facets.getExpr(AS,
-		// facets.getExpr(TARGET)));
-		if (facet == null) {
-			return null;
-		}
-		final IType t = facet.getType();
-		SpeciesDescription result = null;
-		if (t.id() == IType.SPECIES && facet instanceof SpeciesConstantExpression) {
-			result = facet.getType().getContentType().getSpecies();// getSpeciesDescription(facet.literalValue());
-		} else if (t.id() == IType.STRING && facet.isConst()) {
-			result = getSpeciesDescription(facet.literalValue());
-		} else if (t.isAgentType()) {
-			result = t.getSpecies();
-		} else {
-			result = facet.getType().getContentType().getSpecies();
-		}
-		return result;
-
-	}
-
-	public Arguments validateArgs() {
-		final Arguments ca = new Arguments();
-		final boolean isCalling = keyword.equals(CREATE) || keyword.equals(DO) || keyword.equals(PRIMITIVE);
-		Facets argFacets;
-		for (final IDescription sd : getArgs()) {
-			argFacets = sd.getFacets();
-			final String name = sd.getName();
-			IExpression e = null;
-			final IDescription superDesc = getEnclosingDescription();
-			final IExpressionDescription ed = argFacets.getDescr(VALUE, DEFAULT);
-			if (ed != null) {
-				e = ed.compile(superDesc);
-			}
-
-			ca.put(name, e);
-			if (!isCalling) {
-				final IType type = sd.getType();
-				addTemp(this, name, type);
-			}
-
-		}
-		if (keyword.equals(IKeyword.DO)) {
-			verifyArgs(getFacets().getLabel(IKeyword.ACTION), ca);
+		});
+		if (isInvocation()) {
+			verifyArgs(passedArgs);
 		} else if (keyword.equals(IKeyword.CREATE)) {
-			verifyInits(ca);
+			verifyInits(passedArgs);
 		}
-		return ca;
-
+		return passedArgs;
 	}
 
 	private void verifyInits(final Arguments ca) {
-		final SpeciesDescription sd = computeSpecies();
-		final Collection<StatementDescription> args = getArgs();
-		if (sd == null) {
-			if (!args.isEmpty()) {
+		final SpeciesDescription denotedSpecies = getType().getDenotedSpecies();
+		if (denotedSpecies == null) {
+			if (!ca.isEmpty()) {
 				warning("Impossible to verify the validity of the arguments. Use them at your own risk ! (and don't complain about exceptions)",
 						IGamlIssue.UNKNOWN_ARGUMENT);
 			}
 			return;
 		}
-		for (final StatementDescription arg : args) {
-			final String name = arg.getName();
-			// hqnghi check attribute is not exist in both main model and
-			// micro-model
-			if (!sd.hasVar(name) && sd instanceof ExperimentDescription && !sd.getModelDescription().hasVar(name)) {
-				// end-hqnghi
-				error("Attribute " + name + " does not exist in species " + sd.getName(), IGamlIssue.UNKNOWN_ARGUMENT,
-						arg.getFacets().get(VALUE).getTarget(), (String[]) null);
-			} else {
-				IType initType = Types.NO_TYPE;
-				IType varType = Types.NO_TYPE;
-				final VariableDescription vd = sd.getVariable(name);
-				if (vd != null) {
-					varType = vd.getType();
-				}
-				final IExpressionDescription ed = ca.get(name);
-				if (ed != null) {
-					final IExpression expr = ed.getExpression();
-					if (expr != null) {
-						initType = expr.getType();
-					}
-				}
-				if (varType != Types.NO_TYPE && !initType.isTranslatableInto(varType)) {
-					warning("The type of attribute " + name + " should be " + varType, IGamlIssue.SHOULD_CAST,
-							arg.getFacets().get(VALUE).getTarget(), varType.toString());
-				}
-				// else {
-				// varType = sd.getVariable(name).getContentType();
-				// initType = ca.get(name).getExpression().getContentType();
-				// if ( varType != Types.NO_TYPE &&
-				// !initType.isTranslatableInto(varType) ) {
-				// warning("The content type of attribute " + name + " should be
-				// " + varType,
-				// IGamlIssue.WRONG_TYPE,
-				// arg.getFacets().get(VALUE).getTarget(), (String[]) null);
-				// }
-				// }
-			}
+		ca.forEachEntry(new FacetVisitor() {
 
-		}
+			@Override
+			public boolean visit(final String name, final IExpressionDescription exp) {
+				// hqnghi check attribute is not exist in both main model and
+				// micro-model
+				if (!denotedSpecies.hasAttribute(name) && denotedSpecies instanceof ExperimentDescription
+						&& !denotedSpecies.getModelDescription().hasAttribute(name)) {
+					// end-hqnghi
+					error("Attribute " + name + " does not exist in species " + denotedSpecies.getName(),
+							IGamlIssue.UNKNOWN_ARGUMENT, exp.getTarget(), (String[]) null);
+					return false;
+				} else {
+					IType<?> initType = Types.NO_TYPE;
+					IType<?> varType = Types.NO_TYPE;
+					final VariableDescription vd = denotedSpecies.getAttribute(name);
+					if (vd != null) {
+						varType = vd.getType();
+					}
+					if (exp != null) {
+						final IExpression expr = exp.getExpression();
+						if (expr != null) {
+							initType = expr.getType();
+						}
+						if (varType != Types.NO_TYPE && !initType.isTranslatableInto(varType)) {
+							if (getKeyword().equals(IKeyword.CREATE)) {
+								final boolean isDB = getFacet(FROM) != null
+										&& getFacet(FROM).getExpression().getType().isAssignableFrom(Types.LIST);
+								if (isDB && initType.equals(Types.STRING))
+									return true;
+							}
+							warning("The type of attribute " + name + " should be " + varType, IGamlIssue.SHOULD_CAST,
+									exp.getTarget(), varType.toString());
+						}
+					}
+
+				}
+
+				return true;
+			}
+		});
+
 	}
 
 	@Override
@@ -709,54 +318,40 @@ public class StatementDescription extends SymbolDescription {
 
 		// Definition of the type
 		IType t = super.getType();
+		final String keyword = getKeyword();
+		IType ct = t.getContentType();
+		if (keyword.equals(CREATE) || keyword.equals(CAPTURE) || keyword.equals(RELEASE)) {
+			ct = t;
+			t = Types.LIST;
 
-		if (t == Types.NO_TYPE) {
-			if (keyword.equals(CREATE) || keyword.equals(CAPTURE) || keyword.equals(RELEASE)) {
-				t = Types.LIST;
-			} else if (facets.contains(VALUE)) {
-				final IExpression value = facets.getExpr(VALUE);
+		} else if (t == Types.NO_TYPE) {
+			if (hasFacet(VALUE)) {
+				final IExpression value = getFacetExpr(VALUE);
 				if (value != null) {
 					t = value.getType();
 				}
-			} else if (facets.contains(OVER)) {
-				final IExpression expr = facets.getExpr(OVER);
+			} else if (hasFacet(OVER)) {
+				final IExpression expr = getFacetExpr(OVER);
 				if (expr != null) {
 					t = expr.getType().getContentType();
 				}
-			} else if (facets.contains(FROM) && facets.contains(TO)) {
-				final IExpression expr = facets.getExpr(FROM);
+			} else if (hasFacet(FROM) && hasFacet(TO)) {
+				final IExpression expr = getFacetExpr(FROM);
 				if (expr != null) {
 					t = expr.getType();
 				}
 			}
 		}
-		IType ct = t.getContentType();
+
 		IType kt = t.getKeyType();
 		// Definition of the content type and key type
-		if (facets.contains(AS)) {
-			ct = facets.getTypeDenotedBy(AS, this);
-		} else if (facets.contains(SPECIES)) {
-			final IExpression expr = facets.getExpr(SPECIES);
+		if (hasFacet(AS)) {
+			ct = getTypeDenotedByFacet(AS);
+		} else if (hasFacet(SPECIES)) {
+			final IExpression expr = getFacetExpr(SPECIES);
 			if (expr != null) {
 				ct = expr.getType().getContentType();
 				kt = expr.getType().getKeyType();
-			}
-		}
-		// Last chance: grab the content and key from the value
-		// TODO Verify: maybe useless as already done above in getType()
-		final boolean isContainerWithNoContentsType = t.isContainer() && ct == Types.NO_TYPE;
-		final boolean isContainerWithNoKeyType = t.isContainer() && kt == Types.NO_TYPE;
-		final boolean isSpeciesWithAgentType = t.id() == IType.SPECIES && ct.id() == IType.AGENT;
-		if (isContainerWithNoContentsType || isContainerWithNoKeyType || isSpeciesWithAgentType) {
-			final IExpression value = facets.getExpr(VALUE, DEFAULT);
-			if (value != null) {
-				final IType tt = t.typeIfCasting(value);
-				if (isContainerWithNoContentsType || isSpeciesWithAgentType) {
-					ct = tt.getContentType();
-				}
-				if (isContainerWithNoKeyType) {
-					kt = tt.getKeyType();
-				}
 			}
 		}
 
@@ -764,21 +359,33 @@ public class StatementDescription extends SymbolDescription {
 
 	}
 
-	/**
-	 * Method getChildren()
-	 * 
-	 * @see msi.gaml.descriptions.SymbolDescription#getChildren()
-	 */
+	public IVarExpression addNewTempIfNecessary(final String facetName, final IType type) {
+		final String varName = getLitteral(facetName);
+		final IDescription sup = getEnclosingDescription();
+		if (!(sup instanceof StatementWithChildrenDescription)) {
+			error("Impossible to return " + varName, IGamlIssue.GENERAL);
+			return null;
+		}
+		return (IVarExpression) ((StatementWithChildrenDescription) sup).addTemp(this, varName, type);
+	}
+
 	@Override
-	public List<IDescription> getChildren() {
+	public boolean visitChildren(final DescriptionVisitor visitor) {
+		return true;
+	}
+
+	@Override
+	public boolean visitOwnChildren(final DescriptionVisitor visitor) {
+		return true;
+	}
+
+	@Override
+	public Iterable<IDescription> getOwnChildren() {
 		return Collections.EMPTY_LIST;
 	}
 
-	/**
-	 * @return
-	 */
-	public boolean isBreakable() {
-		return getMeta().isBreakable();
+	public Arguments createCompiledArgs() {
+		return passedArgs;
 	}
 
 }

@@ -1,44 +1,46 @@
 /*********************************************************************************************
+ *
+ * 'PauseSoundStatement.java, in plugin ummisco.gaml.extensions.sound, is part of the source code of the GAMA modeling
+ * and simulation platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
  *
- * 'PauseSoundStatement.java', in plugin 'ummisco.gaml.extensions.sound', is part of the source code of the 
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
  **********************************************************************************************/
 package ummisco.gaml.extensions.sound;
 
-import java.util.List;
-
-import ummisco.gaml.extensions.sound.PauseSoundStatement.PauseSoundValidator;
 import msi.gama.common.interfaces.IKeyword;
 import msi.gama.metamodel.agent.IAgent;
-import msi.gama.precompiler.IConcept;
-import msi.gama.precompiler.ISymbolKind;
+import msi.gama.precompiler.GamlAnnotations.doc;
 import msi.gama.precompiler.GamlAnnotations.inside;
 import msi.gama.precompiler.GamlAnnotations.symbol;
 import msi.gama.precompiler.GamlAnnotations.validator;
+import msi.gama.precompiler.IConcept;
+import msi.gama.precompiler.ISymbolKind;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gaml.compilation.IDescriptionValidator;
 import msi.gaml.compilation.ISymbol;
 import msi.gaml.descriptions.IDescription;
 import msi.gaml.statements.AbstractStatementSequence;
-import msi.gaml.types.IType;
+import ummisco.gaml.extensions.sound.PauseSoundStatement.PauseSoundValidator;
 
-@symbol(name = IKeyword.PAUSE_SOUND, kind = ISymbolKind.SEQUENCE_STATEMENT, with_sequence = true,
-concept = { IConcept.SOUND })
-@inside(kinds = { ISymbolKind.BEHAVIOR, ISymbolKind.SEQUENCE_STATEMENT })
-@validator(PauseSoundValidator.class)
+@symbol (
+		name = IKeyword.PAUSE_SOUND,
+		kind = ISymbolKind.SEQUENCE_STATEMENT,
+		with_sequence = true,
+		concept = { IConcept.SOUND })
+@doc ("Allows to pause the sound output")
+@inside (
+		kinds = { ISymbolKind.BEHAVIOR, ISymbolKind.SEQUENCE_STATEMENT })
+@validator (PauseSoundValidator.class)
 public class PauseSoundStatement extends AbstractStatementSequence {
 
-	public static class PauseSoundValidator implements IDescriptionValidator {
+	public static class PauseSoundValidator implements IDescriptionValidator<IDescription> {
 
 		/**
 		 * Method validate()
+		 * 
 		 * @see msi.gaml.compilation.IDescriptionValidator#validate(msi.gaml.descriptions.IDescription)
 		 */
 		@Override
@@ -49,12 +51,12 @@ public class PauseSoundStatement extends AbstractStatementSequence {
 
 	private AbstractStatementSequence sequence = null;
 
-	public PauseSoundStatement(IDescription desc) {
+	public PauseSoundStatement(final IDescription desc) {
 		super(desc);
 	}
 
 	@Override
-	public void setChildren(final List<? extends ISymbol> com) {
+	public void setChildren(final Iterable<? extends ISymbol> com) {
 		sequence = new AbstractStatementSequence(description);
 		sequence.setName("commands of " + getName());
 		sequence.setChildren(com);
@@ -62,18 +64,16 @@ public class PauseSoundStatement extends AbstractStatementSequence {
 
 	@Override
 	public Object privateExecuteIn(final IScope scope) throws GamaRuntimeException {
-		
-		IAgent currentAgent = scope.getAgentScope();
-		
-		GamaSoundPlayer soundPlayer = SoundPlayerBroker.getInstance().getSoundPlayer(currentAgent);
-		soundPlayer.pause();
+
+		final IAgent currentAgent = scope.getAgent();
+
+		final GamaSoundPlayer soundPlayer = SoundPlayerBroker.getInstance().getSoundPlayer(currentAgent);
+		soundPlayer.pause(scope);
 
 		if (sequence != null) {
-			Object[] result = new Object[1];
-			scope.execute(sequence, currentAgent, null, result);
+			scope.execute(sequence, currentAgent, null);
 		}
-		
-		
+
 		return null;
 	}
 }

@@ -1,22 +1,23 @@
 /*********************************************************************************************
  *
+ * 'GamlModelSpecies.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'GamlModelSpecies.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.kernel.model;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -27,6 +28,7 @@ import msi.gama.precompiler.GamlAnnotations.doc;
 import msi.gama.precompiler.GamlAnnotations.facet;
 import msi.gama.precompiler.GamlAnnotations.facets;
 import msi.gama.precompiler.GamlAnnotations.symbol;
+import msi.gama.precompiler.IConcept;
 import msi.gama.precompiler.ISymbolKind;
 import msi.gama.util.TOrderedHashMap;
 import msi.gaml.compilation.ISymbol;
@@ -35,22 +37,78 @@ import msi.gaml.descriptions.ModelDescription;
 import msi.gaml.descriptions.SpeciesDescription;
 import msi.gaml.species.GamlSpecies;
 import msi.gaml.species.ISpecies;
+import msi.gaml.statements.IStatement;
+import msi.gaml.statements.test.TestStatement;
 import msi.gaml.types.IType;
 
-@symbol(name = { IKeyword.MODEL }, kind = ISymbolKind.MODEL, with_sequence = true, internal = true, concept = {})
-@facets(value = { @facet(name = IKeyword.NAME, type = IType.ID, optional = true),
-		@facet(name = IKeyword.VERSION, type = IType.ID, optional = true),
-		@facet(name = IKeyword.AUTHOR, type = IType.ID, optional = true),
-		@facet(name = IKeyword.PRAGMA, type = IType.LIST, of = IType.STRING, optional = true, internal = true),
-		@facet(name = IKeyword.TORUS, type = IType.BOOL, optional = true),
-		@facet(name = IKeyword.NAME, type = IType.ID, optional = false),
-		@facet(name = IKeyword.PARENT, type = IType.ID, optional = true),
-		@facet(name = IKeyword.SKILLS, type = IType.LIST, optional = true),
-		@facet(name = IKeyword.CONTROL, type = IType.SKILL, optional = true),
-		@facet(name = IKeyword.FREQUENCY, type = IType.INT, optional = true),
-		@facet(name = IKeyword.SCHEDULES, type = IType.CONTAINER, optional = true),
-		@facet(name = IKeyword.TOPOLOGY, type = IType.TOPOLOGY, optional = true) }, omissible = IKeyword.NAME)
-@doc("The root declaration of all models")
+@symbol (
+		name = { IKeyword.MODEL },
+		kind = ISymbolKind.MODEL,
+		with_sequence = true,
+		internal = true,
+		concept = { IConcept.MODEL })
+@facets (
+		value = { @facet (
+				name = IKeyword.VERSION,
+				type = IType.ID,
+				optional = true,
+				doc = @doc ("The version of this model")),
+				@facet (
+						name = IKeyword.AUTHOR,
+						type = IType.ID,
+						optional = true,
+						doc = @doc ("The author of the model")),
+				@facet (
+						name = IKeyword.PRAGMA,
+						type = IType.LIST,
+						of = IType.STRING,
+						optional = true,
+						internal = true,
+						doc = @doc ("For internal use only")),
+				@facet (
+						name = IKeyword.TORUS,
+						type = IType.BOOL,
+						optional = true,
+						doc = @doc ("Whether the model will be based on a toroidal environment or not")),
+				@facet (
+						name = IKeyword.NAME,
+						type = IType.ID,
+						optional = false,
+						doc = @doc ("The name of the model")),
+				@facet (
+						name = IKeyword.PARENT,
+						type = IType.ID,
+						optional = true,
+						doc = @doc ("Whether this model inherits from another one or not (must be in the same project and folder)")),
+				@facet (
+						name = IKeyword.SKILLS,
+						type = IType.LIST,
+						optional = true,
+						doc = @doc ("The list of skills attached to this model")),
+				@facet (
+						name = IKeyword.CONTROL,
+						type = IType.SKILL,
+						optional = true,
+						doc = @doc ("The control architecture attached to this model")),
+				@facet (
+						name = IKeyword.FREQUENCY,
+						type = IType.INT,
+						optional = true,
+						doc = @doc ("Specifies how often the model (e.g. every x cycles) will be asked to execute")),
+				@facet (
+						name = IKeyword.SCHEDULES,
+						type = IType.CONTAINER,
+						of = IType.AGENT,
+						doc = @doc ("A container of agents (a species, a dynamic list, or a combination of species and containers) , which represents which agents will be actually scheduled when the population is scheduled for execution. For instance, 'species a schedules: (10 among a)' will result in a population that schedules only 10 of its own agents every cycle. 'species b schedules: []' will prevent the agents of 'b' to be scheduled. Note that the scope of agents covered here can be larger than the population, which allows to build complex scheduling controls; for instance, defining 'global schedules: [] {...} species b schedules: []; species c schedules: b + world; ' allows to simulate a model where the agents of b are scheduled first, followed by the world, without even having to create an instance of c."),
+						optional = true),
+				@facet (
+						name = IKeyword.TOPOLOGY,
+						type = IType.TOPOLOGY,
+						optional = true,
+						doc = @doc ("The topology of this model. Can be used to specify boundaries (although it is preferred to set the shape attribute).")) },
+		omissible = IKeyword.NAME)
+@doc ("A model is a species that is used to specify the 'world' of all the agents in the model. The corresponding population is hosted by experiments and accessible by the keyword 'simulations' (or 'simulation' to get the most recently created one)")
+@SuppressWarnings ({ "unchecked", "rawtypes" })
 public class GamlModelSpecies extends GamlSpecies implements IModel {
 
 	protected final Map<String, IExperimentPlan> experiments = new TOrderedHashMap();
@@ -68,24 +126,8 @@ public class GamlModelSpecies extends GamlSpecies implements IModel {
 	}
 
 	@Override
-	public List<String> getImportedPaths() {
-		return getDescription().getImports();
-	}
-
-	// @Override
-	// public String getRelativeFilePath(final IScope scope, final String
-	// filePath, final boolean shouldExist) {
-	// try {
-	// return FileUtils.constructAbsoluteFilePath(scope, filePath, shouldExist);
-	// } catch (final GamaRuntimeException e) {
-	// GAMA.reportAndThrowIfNeeded(scope, e, false);
-	// return filePath;
-	// }
-	// }
-
-	@Override
-	public boolean isTorus() {
-		return ((ModelDescription) description).isTorus();
+	public Collection<String> getImportedPaths() {
+		return getDescription().getAlternatePaths();
 	}
 
 	@Override
@@ -104,9 +146,7 @@ public class GamlModelSpecies extends GamlSpecies implements IModel {
 	}
 
 	protected void addExperiment(final IExperimentPlan exp) {
-		if (exp == null) {
-			return;
-		}
+		if (exp == null) { return; }
 		experiments.put(exp.getName(), exp);
 		titledExperiments.put(exp.getFacet(IKeyword.TITLE).literalValue(), exp);
 		exp.setModel(this);
@@ -149,12 +189,8 @@ public class GamlModelSpecies extends GamlSpecies implements IModel {
 
 	@Override
 	public ISpecies getSpecies(final String speciesName) {
-		if (speciesName == null) {
-			return null;
-		}
-		if (speciesName.equals(getName())) {
-			return this;
-		}
+		if (speciesName == null) { return null; }
+		if (speciesName.equals(getName())) { return this; }
 		/*
 		 * the original is: return getAllSpecies().get(speciesName);
 		 */
@@ -177,29 +213,20 @@ public class GamlModelSpecies extends GamlSpecies implements IModel {
 
 	@Override
 	public ISpecies getSpecies(final String speciesName, final SpeciesDescription specDes) {
-		if (speciesName == null) {
-			return null;
-		}
-		if (speciesName.equals(getName())) {
-			return this;
-		}
+		if (speciesName == null) { return null; }
+		if (speciesName.equals(getName())) { return this; }
 		// hqnghi 11/Oct/13
 		// get experiementSpecies in any model
-		ISpecies sp = null;
+		ISpecies sp = getExperiment(speciesName);
 		if (sp == null) {
-			sp = getExperiment(speciesName);
-			if (sp == null) {
-				for (final ISpecies mm : getAllSpecies().values()) {
-					if (mm instanceof GamlModelSpecies && specDes.getOriginName().equals(mm.getName())) {
-						sp = ((GamlModelSpecies) mm).getExperiment(speciesName);
-						if (sp != null) {
-							return sp;
-						}
-					}
+			for (final ISpecies mm : getAllSpecies().values()) {
+				if (mm instanceof GamlModelSpecies && specDes.getOriginName().equals(mm.getName())) {
+					sp = ((GamlModelSpecies) mm).getExperiment(speciesName);
+					if (sp != null) { return sp; }
 				}
 			}
-			sp = getAllSpecies().get(speciesName);
 		}
+		sp = getAllSpecies().get(speciesName);
 		return sp;
 	}
 
@@ -227,12 +254,14 @@ public class GamlModelSpecies extends GamlSpecies implements IModel {
 	}
 
 	@Override
-	public void setChildren(final List<? extends ISymbol> children) {
-		final List forExperiment = new ArrayList();
+	public void setChildren(final Iterable<? extends ISymbol> children) {
+		final List forExperiment = new ArrayList<>();
 
-		final List<IExperimentPlan> experiments = new ArrayList();
+		final List<IExperimentPlan> experiments = new ArrayList<>();
+
 		for (final Iterator<? extends ISymbol> it = children.iterator(); it.hasNext();) {
 			final ISymbol s = it.next();
+
 			if (s instanceof IExperimentPlan) {
 				experiments.add((IExperimentPlan) s);
 				it.remove();
@@ -248,6 +277,21 @@ public class GamlModelSpecies extends GamlSpecies implements IModel {
 			addExperiment(exp);
 			exp.setChildren(forExperiment);
 		}
+	}
+
+	static Predicate<IStatement> isTest = s -> (s instanceof TestStatement);
+
+	@Override
+	public List<TestStatement> getAllTests() {
+
+		final List<TestStatement> tests = new ArrayList<>();
+		final Consumer<IStatement> filter = t -> {
+			if (t instanceof TestStatement)
+				tests.add((TestStatement) t);
+		};
+		getBehaviors().forEach(filter);
+		getAllSpecies().values().forEach(s -> s.getBehaviors().forEach(filter));
+		return tests;
 	}
 
 }

@@ -1,19 +1,22 @@
 /*********************************************************************************************
  *
+ * 'MonitorOutput.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'MonitorOutput.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.outputs;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.util.List;
+
 import msi.gama.common.interfaces.IGui;
 import msi.gama.common.interfaces.IKeyword;
 import msi.gama.common.interfaces.ItemList;
+import msi.gama.common.util.FileUtils;
 import msi.gama.kernel.experiment.ITopLevelAgent;
 import msi.gama.precompiler.GamlAnnotations.doc;
 import msi.gama.precompiler.GamlAnnotations.example;
@@ -26,43 +29,76 @@ import msi.gama.precompiler.IConcept;
 import msi.gama.precompiler.ISymbolKind;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
-import msi.gama.util.GAML;
 import msi.gama.util.GamaColor;
+import msi.gama.util.GamaListFactory;
+import msi.gama.util.file.CsvWriter;
 import msi.gaml.descriptions.IDescription;
 import msi.gaml.expressions.IExpression;
 import msi.gaml.factories.DescriptionFactory;
 import msi.gaml.operators.Cast;
+import msi.gaml.operators.Files;
 import msi.gaml.types.IType;
+import msi.gaml.types.Types;
 
 /**
  * The Class MonitorOutput.
  *
  * @author drogoul
  */
-@symbol(name = IKeyword.MONITOR, kind = ISymbolKind.OUTPUT, with_sequence = false, concept = { IConcept.MONITOR })
-@facets(value = {
-		@facet(name = IKeyword.NAME, type = IType.LABEL, optional = false, doc = @doc("identifier of the monitor")),
-		@facet(name = IKeyword.REFRESH_EVERY, type = IType.INT, optional = true, doc = @doc(value = "Allows to refresh the monitor every n time steps (default is 1)", deprecated = "Use refresh: every(n) instead")),
-		@facet(name = IKeyword.COLOR, type = IType.COLOR, optional = true, doc = @doc("Indicates the (possibly dynamic) color of this output (default is a light gray)")),
-		@facet(name = IKeyword.REFRESH, type = IType.BOOL, optional = true, doc = @doc("Indicates the condition under which this output should be refreshed (default is true)")),
-		@facet(name = IKeyword.VALUE, type = IType.NONE, optional = false, doc = @doc("expression that will be evaluated to be displayed in the monitor")) }, omissible = IKeyword.NAME)
-@inside(symbols = { IKeyword.OUTPUT, IKeyword.PERMANENT })
-@doc(value = "A monitor allows to follow the value of an arbitrary expression in GAML.", usages = {
-		@usage(value = "An example of use is:", examples = @example(value = "monitor \"nb preys\" value: length(prey as list) refresh_every: 5;  ", isExecutable = false)) })
-public class MonitorOutput extends AbstractDisplayOutput {
-
-	protected String expressionText = "";
-	protected IExpression value;
+@symbol (
+		name = IKeyword.MONITOR,
+		kind = ISymbolKind.OUTPUT,
+		with_sequence = false,
+		concept = { IConcept.MONITOR })
+@facets (
+		value = { @facet (
+				name = IKeyword.NAME,
+				type = IType.LABEL,
+				optional = false,
+				doc = @doc ("identifier of the monitor")),
+				@facet (
+						name = IKeyword.REFRESH_EVERY,
+						type = IType.INT,
+						optional = true,
+						doc = @doc (
+								value = "Allows to refresh the monitor every n time steps (default is 1)",
+								deprecated = "Use refresh: every(n) instead")),
+				@facet (
+						name = IKeyword.COLOR,
+						type = IType.COLOR,
+						optional = true,
+						doc = @doc ("Indicates the (possibly dynamic) color of this output (default is a light gray)")),
+				@facet (
+						name = IKeyword.REFRESH,
+						type = IType.BOOL,
+						optional = true,
+						doc = @doc ("Indicates the condition under which this output should be refreshed (default is true)")),
+				@facet (
+						name = IKeyword.VALUE,
+						type = IType.NONE,
+						optional = false,
+						doc = @doc ("expression that will be evaluated to be displayed in the monitor")) },
+		omissible = IKeyword.NAME)
+@inside (
+		symbols = { IKeyword.OUTPUT, IKeyword.PERMANENT })
+@doc (
+		value = "A monitor allows to follow the value of an arbitrary expression in GAML.",
+		usages = { @usage (
+				value = "An example of use is:",
+				examples = @example (
+						value = "monitor \"nb preys\" value: length(prey as list) refresh_every: 5;  ",
+						isExecutable = false)) })
+public class MonitorOutput extends AbstractValuedDisplayOutput {
+	private static String monitorFolder = "monitors";
 	protected IExpression colorExpression = null;
 	protected GamaColor color = null;
 	protected GamaColor constantColor = null;
-	protected Object lastValue = "";
+	protected List<Object> history;
 
 	public MonitorOutput(final IDescription desc) {
 		super(desc);
-		setValue(getFacet(IKeyword.VALUE));
 		setColor(getFacet(IKeyword.COLOR));
-		expressionText = getValue() == null ? "" : getValue().serialize(false);
+
 	}
 
 	/**
@@ -71,7 +107,7 @@ public class MonitorOutput extends AbstractDisplayOutput {
 	private void setColor(final IExpression facet) {
 		colorExpression = facet;
 		if (facet != null && facet.isConst()) {
-			constantColor = Cast.as(facet, GamaColor.class, false);
+			constantColor = Types.COLOR.cast(null, facet.value(null), null, false);
 		}
 	}
 
@@ -80,15 +116,11 @@ public class MonitorOutput extends AbstractDisplayOutput {
 				name == null ? expr : name));
 		setScope(scope.copy("in monitor '" + expr + "'"));
 		setNewExpressionText(expr);
-		if (getScope().init(this)) {
-			getScope().getSimulationScope().addOutput(this);
+		if (getScope().init(this).passed()) {
+			getScope().getSimulation().addOutput(this);
 			setPaused(false);
 			open();
 		}
-	}
-
-	public Object getLastValue() {
-		return lastValue;
 	}
 
 	@Override
@@ -115,12 +147,13 @@ public class MonitorOutput extends AbstractDisplayOutput {
 
 	@Override
 	public boolean step(final IScope scope) {
-		if (getScope().interrupted()) {
-			return false;
-		}
+		getScope().setCurrentSymbol(this);
+		if (getScope().interrupted()) { return false; }
 		if (getValue() != null) {
 			try {
 				lastValue = getValue().value(getScope());
+				if (history != null)
+					history.add(lastValue);
 			} catch (final GamaRuntimeException e) {
 				lastValue = ItemList.ERROR_CODE + e.getMessage();
 			}
@@ -139,25 +172,9 @@ public class MonitorOutput extends AbstractDisplayOutput {
 		return constantColor == null ? color : constantColor;
 	}
 
-	public String getExpressionText() {
-		return expressionText == null ? "" : expressionText;
-	}
-
 	@Override
 	public boolean isUnique() {
 		return true;
-	}
-
-	public boolean setNewExpressionText(final String string) {
-		expressionText = string;
-		setValue(GAML.compileExpression(string, getScope().getSimulationScope(), true));
-		return getScope().step(this);
-	}
-
-	public void setNewExpression(final IExpression expr) throws GamaRuntimeException {
-		expressionText = expr == null ? "" : expr.serialize(false);
-		setValue(expr);
-		getScope().step(this);
 	}
 
 	@Override
@@ -169,12 +186,50 @@ public class MonitorOutput extends AbstractDisplayOutput {
 		return result;
 	}
 
-	public IExpression getValue() {
-		return value;
+	@Override
+	protected void setValue(final IExpression value) {
+		if (history != null) {
+			history.clear();
+			history = null;
+		}
+		super.setValue(value);
+		if (value != null) {
+			final IType<?> t = value.getType();
+			if (t.isNumber() || t.isContainer() && t.getContentType().isNumber()) {
+				history = GamaListFactory.create(t);
+			}
+		}
 	}
 
-	protected void setValue(final IExpression value) {
-		this.value = value;
+	public void saveHistory() {
+		if (getScope() == null) { return; }
+		if (history == null || history.isEmpty())
+			return;
+		Files.newFolder(getScope(), monitorFolder);
+		String file =
+				monitorFolder + "/" + "monitor_" + getName() + "_cycle_" + getScope().getClock().getCycle() + ".csv";
+		file = FileUtils.constructAbsoluteFilePath(getScope(), file, false);
+		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+			final CsvWriter w = new CsvWriter(bw, CsvWriter.Letters.COMMA);
+			for (final Object o : history) {
+				String[] strings = null;
+				if (o instanceof Number)
+					strings = new String[] { o.toString() };
+				else if (o instanceof List) {
+					final List<?> l = (List<?>) o;
+					strings = new String[l.size()];
+					for (int i = 0; i < strings.length; i++) {
+						strings[i] = l.get(i).toString();
+					}
+				}
+				w.writeRecord(strings);
+			}
+
+		} catch (final Exception e) {
+			e.printStackTrace();
+			return;
+		}
+
 	}
 
 }

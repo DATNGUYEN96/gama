@@ -1,18 +1,21 @@
 /*********************************************************************************************
  *
- *
- * 'IAgentConstructor.java', in plugin 'msi.gama.core', is part of the source code of the
+ * 'IAgentConstructor.java, in plugin msi.gama.core, is part of the source code of the
  * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.compilation;
 
-import java.util.*;
-import msi.gama.metamodel.agent.*;
+import java.util.HashMap;
+import java.util.Map;
+
+import msi.gama.metamodel.agent.GamlAgent;
+import msi.gama.metamodel.agent.IAgent;
+import msi.gama.metamodel.agent.MinimalAgent;
 import msi.gama.metamodel.population.IPopulation;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
 
@@ -22,35 +25,34 @@ import msi.gama.runtime.exceptions.GamaRuntimeException;
  * @todo Description
  *
  */
-public interface IAgentConstructor {
+@SuppressWarnings({ "unchecked", "rawtypes" })
+public interface IAgentConstructor<T extends IAgent> {
 
-	public static class Minimal implements IAgentConstructor {
+	public static class Minimal implements IAgentConstructor<MinimalAgent> {
 
 		/**
 		 * Method createOneAgent()
+		 * 
 		 * @see msi.gaml.compilation.IAgentConstructor#createOneAgent(msi.gama.metamodel.population.IPopulation)
 		 */
+
 		@Override
-		public IAgent createOneAgent(final IPopulation manager) throws GamaRuntimeException {
+		public MinimalAgent createOneAgent(final IPopulation manager) throws GamaRuntimeException {
 			return new MinimalAgent(manager);
 		}
 
 	}
 
-	public static class Gaml implements IAgentConstructor {
+	public static class Gaml implements IAgentConstructor<GamlAgent> {
 
-		/**
-		 * Method createOneAgent()
-		 * @see msi.gaml.compilation.IAgentConstructor#createOneAgent(msi.gama.metamodel.population.IPopulation)
-		 */
 		@Override
-		public IAgent createOneAgent(final IPopulation manager) throws GamaRuntimeException {
+		public GamlAgent createOneAgent(final IPopulation manager) throws GamaRuntimeException {
 			return new GamlAgent(manager);
 		}
 
 	}
 
-	public static Map<Class<IAgent>, IAgentConstructor> CONSTRUCTORS = new HashMap() {
+	public static Map<Class<? extends IAgent>, IAgentConstructor<? extends IAgent>> CONSTRUCTORS = new HashMap<Class<? extends IAgent>, IAgentConstructor<? extends IAgent>>() {
 
 		{
 			put(GamlAgent.class, new Gaml());
@@ -58,6 +60,6 @@ public interface IAgentConstructor {
 		}
 	};
 
-	public abstract IAgent createOneAgent(IPopulation manager) throws GamaRuntimeException;
+	public <T extends IAgent> T createOneAgent(IPopulation<T> manager) throws GamaRuntimeException;
 
 }

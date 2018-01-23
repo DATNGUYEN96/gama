@@ -1,3 +1,13 @@
+/*********************************************************************************************
+ *
+ * 'GridDiffuser.java, in plugin msi.gama.core, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.metamodel.topology.grid;
 
 import java.util.ArrayList;
@@ -8,12 +18,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import msi.gama.metamodel.agent.IAgent;
 import msi.gama.metamodel.population.IPopulation;
 import msi.gama.metamodel.topology.grid.GamaSpatialMatrix.GridPopulation;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
-import msi.gama.util.matrix.IMatrix;
 import msi.gaml.operators.Cast;
+import msi.gaml.variables.IVariable;
 
 public class GridDiffuser {
 
@@ -24,9 +35,9 @@ public class GridDiffuser {
 		int NbRows;
 		int NbCols;
 		boolean Is_torus;
-		IPopulation Pop;
+		IPopulation<? extends IAgent> Pop;
 
-		public PairVarGrid(final IScope scope, final String var_name, final GridPopulation pop) {
+		public PairVarGrid(final IScope scope, final String var_name, final GridPopulation<? extends IAgent> pop) {
 			Var_name = var_name;
 			Grid_name = pop.getName();
 			NbRows = ((IGrid) pop.getTopology().getPlaces()).getRows(scope);
@@ -104,7 +115,7 @@ public class GridDiffuser {
 
 	protected final Map<PairVarGrid, List<GridDiffusion>> m_diffusions = new HashMap<PairVarGrid, List<GridDiffusion>>();
 
-	public void addDiffusion(final IScope scope, final String var_diffu, final GridPopulation pop,
+	public void addDiffusion(final IScope scope, final String var_diffu, final GridPopulation<? extends IAgent> pop,
 			final boolean method_diffu, final boolean is_gradient, final double[][] mat_diffu, final double[][] mask,
 			final double min_value, final boolean avoid_mask) {
 		final GridDiffusion newGridDiff = new GridDiffusion(scope, method_diffu, is_gradient, mat_diffu, mask,
@@ -197,7 +208,7 @@ public class GridDiffuser {
 	double[] input, output;
 	int nbRows, nbCols;
 	double min_value;
-	IPopulation pop;
+	IPopulation<? extends IAgent> pop;
 
 	public GridDiffuser() {
 	}
@@ -252,9 +263,9 @@ public class GridDiffuser {
 		final int kCenterX = kCols / 2;
 		final int kCenterY = kRows / 2;
 
-		for (int i = 0; i < nbRows; ++i) // output rows
+		for (int i = 0; i < nbCols; ++i) // output rows
 		{
-			for (int j = 0; j < nbCols; ++j) // output columns
+			for (int j = 0; j < nbRows; ++j) // output columns
 			{
 				double value_to_redistribute = 0;
 				final ArrayList<int[]> non_masked_cells = new ArrayList<int[]>();
@@ -370,23 +381,26 @@ public class GridDiffuser {
 							// diffuse if the output value is in the grid
 							if (i >= 0 && i < nbCols && j >= 0 && j < nbRows) {
 								final double value_before_change = output[j * nbCols + i];
-								if (output[j * nbCols + i] == -Double.MAX_VALUE) {
-									output[j * nbCols + i] = input[jj * nbCols + ii] * mat_diffu[m][n];
+								final int outputIndex = j * nbCols + i;
+								final int inputIndex = jj * nbCols + ii;
+								final double matrixValue = mat_diffu[m][n];
+								if (output[outputIndex] == -Double.MAX_VALUE) {
+									output[outputIndex] = input[inputIndex] * matrixValue;
 								} else {
 									if (is_gradient) {
-										if (output[j * nbCols + i] < input[jj * nbCols + ii] * mat_diffu[m][n]) {
-											output[j * nbCols + i] = input[jj * nbCols + ii] * mat_diffu[m][n];
+										if (output[outputIndex] < input[inputIndex] * matrixValue) {
+											output[outputIndex] = input[inputIndex] * matrixValue;
 										}
 									} else {
-										output[j * nbCols + i] += input[jj * nbCols + ii] * mat_diffu[m][n];
+										output[outputIndex] += input[inputIndex] * matrixValue;
 									}
 								}
 
 								// undo the changes if "avoid_mask" and if the
 								// output cell is masked.
 								if (avoid_mask && (mask == null ? false : mask[i][j] != 1)) {
-									value_to_redistribute += output[j * nbCols + i];
-									output[j * nbCols + i] = value_before_change;
+									value_to_redistribute += output[outputIndex];
+									output[outputIndex] = value_before_change;
 									if (mask[ii][jj] == 1) {
 										// input cell not masked
 										non_masked_cells.add(new int[] { ii, jj });
@@ -412,42 +426,43 @@ public class GridDiffuser {
 		}
 	}
 
-	public void finishDiffusion(final IScope scope, final IPopulation pop) {
+	public void finishDiffusion(final IScope scope, final IPopulation<? extends IAgent> pop) {
+		final IVariable v = pop.getVar(var_diffu);
+		if (v == null)
+			return;
 		for (int i = 0; i < output.length; i++) {
-			if (output[i] != -Double.MAX_VALUE) {
-				if (is_gradient) {
-					if (output[i] > input[i]) {
-						if (output[i] < min_value) {
-							pop.get(scope, i).setDirectVarValue(scope, var_diffu, 0);
-						} else {
-							pop.get(scope, i).setDirectVarValue(scope, var_diffu, output[i]);
-						}
-					}
-				} else {
-					if (output[i] < min_value) {
-						pop.get(scope, i).setDirectVarValue(scope, var_diffu, 0);
-					} else {
-						pop.get(scope, i).setDirectVarValue(scope, var_diffu, output[i]);
-					}
-				}
+			double valToPut = output[i];
+			if (valToPut == -Double.MAX_VALUE)
+				continue;
+
+			if (is_gradient) {
+				if (valToPut > input[i]) {
+					if (valToPut < min_value)
+						valToPut = 0;
+				} else
+					continue;
+			} else {
+				valToPut = Math.max(valToPut, min_value);
 			}
+			v.setVal(scope, pop.get(scope, i), valToPut);
 		}
 	}
 
-	public double[][] translateMatrix(final IScope scope, final IMatrix<?> mm) {
-		if (mm == null) {
-			return null;
-		}
-		final int rows = mm.getRows(scope);
-		final int cols = mm.getCols(scope);
-		final double[][] res = new double[rows][cols];
-		for (int i = 0; i < rows; i++) {
-			for (int j = 0; j < cols; j++) {
-				res[i][j] = Cast.asFloat(scope, mm.get(scope, i, j));
-			}
-		}
-		return res;
-	}
+	// public double[][] translateMatrix(final IScope scope, final IMatrix<?>
+	// mm) {
+	// if (mm == null) {
+	// return null;
+	// }
+	// final int rows = mm.getRows(scope);
+	// final int cols = mm.getCols(scope);
+	// final double[][] res = new double[rows][cols];
+	// for (int i = 0; i < rows; i++) {
+	// for (int j = 0; j < cols; j++) {
+	// res[i][j] = Cast.asFloat(scope, mm.get(scope, i, j));
+	// }
+	// }
+	// return res;
+	// }
 
 	public Object diffuse() throws GamaRuntimeException {
 

@@ -1,29 +1,29 @@
 /*********************************************************************************************
+ *
+ * 'Solver.java, in plugin ummisco.gaml.extensions.maths, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
  * 
  *
- * 'Solver.java', in plugin 'ummisco.gaml.extensions.maths', is part of the source code of the 
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- * 
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- * 
- * 
  **********************************************************************************************/
 package ummisco.gaml.extensions.maths.ode.utils.solver;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.math3.exception.NotANumberException;
 import org.apache.commons.math3.ode.FirstOrderIntegrator;
 import org.apache.commons.math3.ode.sampling.StepHandler;
 import org.apache.commons.math3.ode.sampling.StepInterpolator;
 
 import msi.gama.metamodel.agent.IAgent;
+import msi.gama.runtime.GAMA;
 import msi.gama.runtime.IScope;
+import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gama.util.GamaListFactory;
 import msi.gama.util.GamaMap;
 import msi.gama.util.IList;
-import msi.gaml.expressions.IExpression;
 import msi.gaml.operators.Cast;
 import ummisco.gaml.extensions.maths.ode.statements.SystemOfEquationsStatement;
 
@@ -34,10 +34,10 @@ public abstract class Solver {
 	final double step;
 
 	Solver(final double step, final FirstOrderIntegrator integrator,
-			final GamaMap<String, IList<Double>> integratedValues) {
+			final GamaMap<String, IList<Double>> integrated_val) {
 		this.step = step;
 		this.integrator = integrator;
-		if (integratedValues != null)
+		if (integrated_val != null)
 			integrator.addStepHandler(new StepHandler() {
 
 				@Override
@@ -49,7 +49,7 @@ public abstract class Solver {
 					final double time = interpolator.getCurrentTime();
 					final double[] y = interpolator.getInterpolatedState();
 					count++;
-					storeValues(time, y, integratedValues);
+					storeValues(time, y, integrated_val);
 				}
 			});
 	}
@@ -59,69 +59,73 @@ public abstract class Solver {
 	public void solve(final IScope scope, final SystemOfEquationsStatement eq, final double initialTime,
 			final double finalTime, final GamaMap<String, IList<Double>> integrationValues) {
 
-		eq.executeInScope(scope, new Runnable() {
+		eq.executeInScope(scope, () -> {
+			final Map<Integer, IAgent> equationAgents = eq.getEquationAgents(scope);
+			/*
+			 * prepare initial value of variables 1. loop through variables
+			 * expression 2. if its equaAgents != null, it mean variable of
+			 * external equation, set current scope to this agent scope 3. get
+			 * value 4. return to previous scope
+			 */
 
-			@Override
-			public void run() {
-				final IList<IAgent> equationAgents = eq.getEquationAgents(scope);
-				/*
-				 * prepare initial value of variables 1. loop through variables
-				 * expression 2. if its equaAgents != null, it mean variable of
-				 * external equation, set current scope to this agent scope 3.
-				 * get value 4. return to previous scope
-				 */
-
-				final double[] y = new double[eq.variables_diff.size()];
-				final List<IExpression> equationValues = new ArrayList(eq.variables_diff.values());
-				for (int i = 0, n = equationValues.size(); i < n; i++) {
-					final IAgent a = equationAgents.get(i);
-					if (integrationValues.size() < n) {
-						integrationValues.put(equationValues.get(i).toString()+a, GamaListFactory.create(Double.class));
-					}
-					if (!a.dead()) {
-						final boolean pushed = scope.push(a);
-						try {
-							y[i] = Cast.asFloat(scope, equationValues.get(i).value(scope));
-						} catch (final Exception ex1) {
-							scope.getGui().debug(ex1.getMessage());
-						} finally {
-							if (pushed) {
-								scope.pop(a);
-							}
+			final double[] y = new double[eq.variables_diff.size()];
+			// final ArrayList<IExpression> equationValues = new
+			// ArrayList<IExpression>(eq.variables_diff.values());
+			int i = 0;
+			final int n = eq.variables_diff.size();
+			for (i = 0; i < n; i++) {
+				final IAgent a = equationAgents.get(i);
+				final String eqkeyname = a + eq.variables_diff.get(i).toString();
+				if (integrationValues.get(eqkeyname) == null) {
+					integrationValues.put(eqkeyname, GamaListFactory.create(Double.class));
+				}
+				if (!a.dead()) {
+					final boolean pushed = scope.push(a);
+					try {
+						y[i] = Cast.asFloat(scope, eq.variables_diff.get(i).value(scope));
+						if (Double.isInfinite(y[i])) {
+							GAMA.reportAndThrowIfNeeded(scope,
+									GamaRuntimeException.create(new NotANumberException(), scope), true);
+						}
+					} catch (final Exception ex1) {
+						scope.getGui().debug(ex1.getMessage());
+					} finally {
+						if (pushed) {
+							scope.pop(a);
 						}
 					}
-
-				}
-				if(integrationValues.get(eq.variable_time.getName())==null){					
-					integrationValues.put(eq.variable_time.getName(), GamaListFactory.create(Double.class));
 				}
 
-				if (scope.getClock().getCycle() == 0) {
-					storeValues(initialTime, y, integrationValues);
-				}
-				if (y.length > 0) {
-					try {
-						integrator.integrate(eq, initialTime, y, finalTime, y);
-					} catch (final Exception ex) {
-						System.out.println(ex);
-					}
-				}
-				eq.assignValue(scope, finalTime * step, y);
-				storeValues(finalTime, y, integrationValues);
 			}
+			if (integrationValues.get(scope.getAgent() + eq.variable_time.getName()) == null) {
+				integrationValues.put(scope.getAgent() + eq.variable_time.getName(),
+						GamaListFactory.create(Double.class));
+			}
+
+			if (scope.getClock().getCycle() == 0) {
+				storeValues(initialTime, y, integrationValues);
+			}
+			if (y.length > 0) {
+				try {
+					integrator.integrate(eq, initialTime, y, finalTime, y);
+				} catch (final Exception ex) {
+					System.out.println(ex);
+				}
+			}
+			eq.assignValue(scope, finalTime * step, y);
+			storeValues(finalTime, y, integrationValues);
 		});
 
 	}
 
 	private void storeValues(final double time, final double[] y,
 			final GamaMap<String, IList<Double>> integrationValues) {
-		// if (integrationTimes != null)
-		// integrationTimes.add(time);
-		if (integrationValues != null)
+		if (integrationValues != null) {
 			for (int i = 0; i < y.length; i++) {
-				integrationValues.getValues().get(i).add(y[i]);
+				integrationValues.valueAt(i).add(y[i]);
 			}
-		integrationValues.getValues().get(y.length).add(time);
+			integrationValues.valueAt(y.length).add(time);
+		}
 
 	}
 }

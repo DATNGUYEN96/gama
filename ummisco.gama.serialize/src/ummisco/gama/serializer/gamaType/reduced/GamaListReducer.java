@@ -1,3 +1,13 @@
+/*********************************************************************************************
+ *
+ * 'GamaListReducer.java, in plugin ummisco.gama.serialize, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package ummisco.gama.serializer.gamaType.reduced;
 
 import java.util.ArrayList;
@@ -5,27 +15,22 @@ import java.util.ArrayList;
 import msi.gama.runtime.IScope;
 import msi.gama.util.GamaList;
 import msi.gama.util.GamaListFactory;
-import msi.gama.util.GamaMap;
-import msi.gama.util.GamaMap.GamaPairList;
-import msi.gama.util.GamaMapFactory;
-import msi.gama.util.GamaPair;
 import msi.gaml.types.IType;
 
+@SuppressWarnings({ "rawtypes" })
 public class GamaListReducer {
-	private ArrayList<Object> valuesListReducer = new ArrayList<>();
-	private IType contentTypeListReducer;
-	
-	public GamaListReducer(GamaList l)
-	{		
-		contentTypeListReducer = l .getType().getContentType();
-		
-		for(Object p : l) {
+	private final ArrayList<Object> valuesListReducer = new ArrayList<>();
+	private final IType contentTypeListReducer;
+
+	public GamaListReducer(final GamaList l) {
+		contentTypeListReducer = l.getType().getContentType();
+
+		for (final Object p : l) {
 			valuesListReducer.add(p);
 		}
 	}
-	
-	public GamaList constructObject(IScope scope)
-	{
+
+	public GamaList constructObject(final IScope scope) {
 		return (GamaList) GamaListFactory.create(scope, contentTypeListReducer, valuesListReducer);
 	}
 }

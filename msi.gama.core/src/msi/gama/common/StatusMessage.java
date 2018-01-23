@@ -1,25 +1,34 @@
-/**
- * Created by drogoul, 4 nov. 2014
+/*********************************************************************************************
  *
- */
+ * 'StatusMessage.java, in plugin msi.gama.core, is part of the source code of the
+ * GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
+ *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
+ *
+ **********************************************************************************************/
 package msi.gama.common;
 
 import msi.gama.common.interfaces.IGui;
+import msi.gama.common.interfaces.IStatusMessage;
 import msi.gama.util.GamaColor;
 
 public class StatusMessage implements IStatusMessage {
 
 	String message = "";
 	protected int code = IGui.INFORM;
+	protected String icon;
 
 	public StatusMessage(final String msg, final int s) {
 		message = msg;
 		code = s;
 	}
 
-	@Override
-	public boolean isEmpty() {
-		return message == null;
+	public StatusMessage(final String msg, final int s, final String icon) {
+		message = msg;
+		this.icon = icon;
+		code = s;
 	}
 
 	@Override
@@ -34,7 +43,8 @@ public class StatusMessage implements IStatusMessage {
 
 	/**
 	 * Method getColor()
-	 * @see msi.gama.common.IStatusMessage#getColor()
+	 * 
+	 * @see msi.gama.common.interfaces.IStatusMessage#getColor()
 	 */
 	@Override
 	public GamaColor getColor() {
@@ -48,7 +58,7 @@ public class StatusMessage implements IStatusMessage {
 	 */
 	@Override
 	public String getIcon() {
-		return null;
+		return icon;
 	}
 
 }

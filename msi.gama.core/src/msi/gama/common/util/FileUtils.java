@@ -1,12 +1,10 @@
 /*********************************************************************************************
  *
+ * 'FileUtils.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation platform.
+ * (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'FileUtils.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.common.util;
@@ -16,8 +14,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.List;
+
+import com.google.common.collect.Iterables;
 
 import msi.gama.kernel.experiment.IExperimentAgent;
 import msi.gama.runtime.GAMA;
@@ -45,11 +43,15 @@ public class FileUtils {
 	private static boolean isAbsolutePath(final String filePath) {
 		final File[] roots = File.listRoots();
 		for (int i = 0; i < roots.length; i++) {
-			if (filePath.startsWith(roots[i].getAbsolutePath())) {
-				return true;
-			}
+			if (filePath.startsWith(roots[i].getAbsolutePath())) { return true; }
 		}
 		return false;
+	}
+
+	private static String withTrailingSep(final String path) {
+		if (path.endsWith("/"))
+			return path;
+		return path + "/";
 	}
 
 	/**
@@ -65,9 +67,8 @@ public class FileUtils {
 
 		final File[] roots = File.listRoots();
 		for (int i = 0; i < roots.length; i++) {
-			if (absoluteFilePath.startsWith(roots[i].getAbsolutePath())) {
-				return absoluteFilePath.substring(roots[i].getAbsolutePath().length(), absoluteFilePath.length());
-			}
+			if (absoluteFilePath.startsWith(roots[i].getAbsolutePath())) { return absoluteFilePath
+					.substring(roots[i].getAbsolutePath().length(), absoluteFilePath.length()); }
 		}
 		return absoluteFilePath;
 	}
@@ -88,19 +89,24 @@ public class FileUtils {
 	static public String constructAbsoluteFilePath(final IScope scope, final String fp, final boolean mustExist)
 			throws GamaRuntimeException {
 		String filePath = null;
-		final List<String> baseDirectories = new ArrayList();
+		Iterable<String> baseDirectories = null;
 		final IExperimentAgent a = scope.getExperiment();
-		final List<String> referenceDirectories = a.getWorkingPaths();
+		// final List<String> referenceDirectories = a.getWorkingPaths();
+
 		try {
-			for (final String ref : referenceDirectories) {
-				baseDirectories.add(URLDecoder.decode(ref, "UTF-8"));
-			}
+			baseDirectories = Iterables.transform(a.getWorkingPaths(), each -> {
+				try {
+					return withTrailingSep(URLDecoder.decode(each, "UTF-8"));
+				} catch (final UnsupportedEncodingException e1) {
+					return each;
+				}
+			});
 			filePath = URLDecoder.decode(fp, "UTF-8");
 		} catch (final UnsupportedEncodingException e1) {
-			e1.printStackTrace();
+			filePath = fp;
 		}
-		final GamaRuntimeException ex = new GamaRuntimeFileException(scope,
-				"File denoted by " + filePath + " not found! Tried the following paths : ");
+		final GamaRuntimeException ex =
+				new GamaRuntimeFileException(scope, "File denoted by " + filePath + " not found.");
 		File file = null;
 		if (isAbsolutePath(filePath)) {
 			file = new File(filePath);
@@ -113,7 +119,7 @@ public class FileUtils {
 				}
 			}
 			for (final String baseDirectory : baseDirectories) {
-				file = new File(baseDirectory + File.separator + removeRoot(filePath));
+				file = new File(baseDirectory + removeRoot(filePath));
 				if (file.exists()) {
 					try {
 						return file.getCanonicalPath();
@@ -127,11 +133,11 @@ public class FileUtils {
 		} else {
 			for (final String baseDirectory : baseDirectories) {
 				file = new File(baseDirectory + filePath);
-				if (file.exists() || !mustExist) {
+				if (file.exists()) {
 					try {
 						// We have to try if the test is necessary.
-
-						if (GAMA.isInHeadLessMode()) {
+						if (scope.getExperiment().isHeadless()) {
+							// if (GAMA.isInHeadLessMode()) {
 							return file.getAbsolutePath();
 						} else {
 							return file.getCanonicalPath();
@@ -145,6 +151,14 @@ public class FileUtils {
 
 				ex.addContext(file.getAbsolutePath());
 			}
+			// We havent found the file, but it may not exist. In that case, the
+			// first directory is used as a reference.
+			if (!mustExist)
+				try {
+					return new File(Iterables.get(baseDirectories, 0) + filePath).getCanonicalPath();
+				} catch (final IOException e) {
+					throw ex;
+				}
 		}
 
 		throw ex;
@@ -157,14 +171,12 @@ public class FileUtils {
 		if (f == null || !f.exists())
 			return false;
 		byte[] data;
-		try {
-			final FileInputStream in = new FileInputStream(f);
+		try (FileInputStream in = new FileInputStream(f)) {
 			int size = in.available();
 			if (size > 1024)
 				size = 1024;
 			data = new byte[size];
 			in.read(data);
-			in.close();
 			int ascii = 0;
 			int other = 0;
 
@@ -191,6 +203,23 @@ public class FileUtils {
 			return false;
 		}
 
+	}
+
+	public static String constructAbsoluteTempFilePath(final IScope scope, final String suffix) {
+		try {
+			final File temp = File.createTempFile("tmp", suffix);
+			temp.deleteOnExit();
+			return temp.getAbsolutePath();
+		} catch (final Exception e) {
+			// Not allowed to create temp files in system
+			final String newPath = constructAbsoluteFilePath(scope, "tmp/" + suffix, false);
+			final File file = new File(newPath);
+			try {
+				file.createNewFile();
+			} catch (final IOException e1) {}
+			file.deleteOnExit();
+			return file.getAbsolutePath();
+		}
 	}
 
 }

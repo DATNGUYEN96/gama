@@ -12,6 +12,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import msi.gama.precompiler.doc.utils.Constants;
+import msi.gama.precompiler.doc.utils.XMLUtils;
+
 
 /**
  * @author bgaudou
@@ -19,10 +22,12 @@ import org.xml.sax.SAXException;
  */
 public class WorkspaceManager {
 	private File wsFile;
+	private boolean isLocal;
 	
-	public WorkspaceManager(String location) throws IOException{
+	public WorkspaceManager(String location, boolean local) throws IOException{
  		File mainFile = new File((new File(location)).getCanonicalPath());				
-		wsFile = new File(mainFile.getParent());			
+		wsFile = new File(mainFile.getParent());	
+		isLocal = local;
 	}
 
 	public File getFile(){return wsFile;}
@@ -84,8 +89,20 @@ public class WorkspaceManager {
 		return hmFilesPackages;
  	}
  	
+ 	public HashMap<String, File> getAllDocFilesLocal() throws IOException{
+		HashMap<String, File> hmFilesPackages = new HashMap<String, File>();
+		
+		for(File f : wsFile.listFiles()){			
+			File docGamaFile = new File(f.getAbsolutePath() + File.separator + Constants.DOCGAMA_FILE_LOCAL);
+			if(docGamaFile.exists()){
+				hmFilesPackages.put(f.getName(),docGamaFile);
+			}
+		}
+		return hmFilesPackages;
+ 	} 	
+ 	
  	public HashMap<String, File> getProductDocFiles() throws IOException, ParserConfigurationException, SAXException{
- 		HashMap<String, File> hmFilesPackages = getAllDocFiles();
+ 		HashMap<String, File> hmFilesPackages = isLocal ? getAllDocFilesLocal() : getAllDocFiles();
  		List<String> pluginsProduct = getAllGAMAPluginsInProduct();
  		HashMap<String, File> hmFilesRes = new HashMap<String, File>();
 
@@ -99,7 +116,7 @@ public class WorkspaceManager {
  	}
  	
  	public HashMap<String, File> getExtensionsDocFiles() throws IOException, ParserConfigurationException, SAXException{
- 		HashMap<String, File> hmFilesPackages = getAllDocFiles();
+ 		HashMap<String, File> hmFilesPackages = isLocal ? getAllDocFilesLocal() : getAllDocFiles();
  		List<String> pluginsProduct = getAllGAMAPluginsInProduct();
  		HashMap<String, File> hmFilesRes = new HashMap<String, File>();
 
@@ -240,7 +257,7 @@ public class WorkspaceManager {
 	
 	
 	public static void main(String[] arg) throws IOException, ParserConfigurationException, SAXException{
-		WorkspaceManager ws = new WorkspaceManager(".");
+		WorkspaceManager ws = new WorkspaceManager(".", false);
 		List<String> l = ws.getAllGAMAPluginsInProduct();
 		for(String name : l){
 			System.out.println(name);

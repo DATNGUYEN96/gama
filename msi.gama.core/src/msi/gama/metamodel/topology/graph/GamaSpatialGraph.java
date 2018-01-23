@@ -1,20 +1,16 @@
 /*********************************************************************************************
  *
+ * 'GamaSpatialGraph.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and simulation
+ * platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'GamaSpatialGraph.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gama.metamodel.topology.graph;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.jgrapht.Graphs;
@@ -22,6 +18,7 @@ import org.jgrapht.Graphs;
 import com.vividsolutions.jts.geom.Coordinate;
 
 import gnu.trove.map.hash.TIntObjectHashMap;
+import msi.gama.common.geometry.GeometryUtils;
 import msi.gama.common.util.StringUtils;
 import msi.gama.metamodel.agent.IAgent;
 import msi.gama.metamodel.population.IPopulation;
@@ -29,10 +26,10 @@ import msi.gama.metamodel.shape.GamaPoint;
 import msi.gama.metamodel.shape.ILocation;
 import msi.gama.metamodel.shape.IShape;
 import msi.gama.metamodel.topology.ITopology;
-import msi.gama.metamodel.topology.filter.IAgentFilter;
 import msi.gama.runtime.IScope;
 import msi.gama.runtime.exceptions.GamaRuntimeException;
 import msi.gama.util.GamaListFactory;
+import msi.gama.util.GamaMap;
 import msi.gama.util.GamaMapFactory;
 import msi.gama.util.IContainer;
 import msi.gama.util.IList;
@@ -42,19 +39,16 @@ import msi.gama.util.graph.GraphEvent.GraphEventType;
 import msi.gama.util.graph._Edge;
 import msi.gama.util.path.GamaSpatialPath;
 import msi.gama.util.path.PathFactory;
-import msi.gaml.operators.Spatial.Queries;
 import msi.gaml.species.ISpecies;
-import msi.gaml.statements.IExecutable;
 import msi.gaml.types.GamaGeometryType;
 import msi.gaml.types.IType;
 import msi.gaml.types.Types;
 
-public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
-		implements ISpatialGraph, IPopulation.Listener, IAgentFilter {
+@SuppressWarnings ({ "unchecked", "rawtypes" })
+public class GamaSpatialGraph extends GamaGraph<IShape, IShape> implements ISpatialGraph, IPopulation.Listener {
 
 	/*
-	 * Own topology of the graph. Lazily instantiated, and invalidated at each
-	 * modification of the graph.
+	 * Own topology of the graph. Lazily instantiated, and invalidated at each modification of the graph.
 	 */
 	private ITopology topology;
 	private double tolerance = 0;
@@ -72,8 +66,7 @@ public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
 
 		/**
 		 * @param scope
-		 *            TODO Determines if two vertex geometries are to be treated
-		 *            as related in any way.
+		 *            TODO Determines if two vertex geometries are to be treated as related in any way.
 		 * @param p1
 		 *            a geometrical object
 		 * @param p2
@@ -93,9 +86,10 @@ public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
 		this(scope, nodeType, edgeType);
 		init(scope, edgesOrVertices, byEdge, directed, rel, edgesSpecies);
 	}
+
 	public GamaSpatialGraph(final IContainer edgesOrVertices, final boolean byEdge, final boolean directed,
 			final VertexRelationship rel, final ISpecies edgesSpecies, final IScope scope, final IType nodeType,
-			final IType edgeType, Double tolerance) {
+			final IType edgeType, final Double tolerance) {
 		this(scope, nodeType, edgeType);
 		this.tolerance = tolerance;
 		init(scope, edgesOrVertices, byEdge, directed, rel, edgesSpecies, tolerance);
@@ -122,7 +116,7 @@ public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
 	@Override
 	protected GamaSpatialPath pathFromEdges(final IScope scope, final IShape source, final IShape target,
 			final IList<IShape> edges) {
-		return PathFactory.newInstance(getTopology(scope), source, target, edges);
+		return PathFactory.newInstance(scope, getTopology(scope), source, target, edges);
 		// return new GamaPath(getTopology(), (IShape) source, (IShape) target,
 		// edges);
 	}
@@ -205,9 +199,7 @@ public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
 		boolean related, already;
 		for (final IShape s1 : vSet) {
 			for (final IShape s2 : vSet) {
-				if (scope.interrupted()) {
-					return;
-				}
+				if (scope.interrupted()) { return; }
 				if (vertexRelation.equivalent(scope, s1, s2)) {
 					continue;
 				}
@@ -224,49 +216,44 @@ public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
 
 	@Override
 	protected Object generateEdgeObject(final Object v1, final Object v2) {
-		if (v1 instanceof IShape && v2 instanceof IShape) {
-			return GamaGeometryType.buildLink(scope, (IShape) v1, (IShape) v2);
-		}
+		if (v1 instanceof IShape
+				&& v2 instanceof IShape) { return GamaGeometryType.buildLink(scope, (IShape) v1, (IShape) v2); }
 		return super.generateEdgeObject(v1, v2);
 	}
 
 	@Override
-	public void notifyAgentRemoved(final IPopulation pop, final IAgent agent) {
+	public void notifyAgentRemoved(final IScope scope, final IPopulation pop, final IAgent agent) {
 		this.removeVertex(agent);
 	}
 
 	@Override
-	public void notifyAgentAdded(final IPopulation pop, final IAgent agent) {
+	public void notifyAgentAdded(final IScope scope, final IPopulation pop, final IAgent agent) {
 		this.addVertex(agent);
 	}
 
 	@Override
-	public void notifyAgentsAdded(final IPopulation pop, final Collection agents) {
+	public void notifyAgentsAdded(final IScope scope, final IPopulation pop, final Collection agents) {
 		for (final Object o : agents) {
 			addVertex((IAgent) o);
 		}
 	}
 
 	@Override
-	public void notifyAgentsRemoved(final IPopulation pop, final Collection agents) {
+	public void notifyAgentsRemoved(final IScope scope, final IPopulation pop, final Collection agents) {
 		for (final Object o : agents) {
 			removeVertex(o);
 		}
 	}
 
 	@Override
-	public void notifyPopulationCleared(final IPopulation pop) {
+	public void notifyPopulationCleared(final IScope scope, final IPopulation pop) {
 		removeAllVertices(vertexSet());
 	}
 
 	public void postRefreshManagementAction(final IScope scope) {
-		scope.getSimulationScope().postEndAction(new IExecutable() {
-
-			@Override
-			public Object executeOn(final IScope scope) throws GamaRuntimeException {
-				GamaSpatialGraph.this.refreshEdges();
-				return null;
-			}
+		scope.getSimulation().postEndAction(scope1 -> {
+			GamaSpatialGraph.this.refreshEdges();
+			return null;
 		});
 	}
 
@@ -282,42 +269,40 @@ public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
 	public IShape getBuiltVertex(final Coordinate vertex) {
 		if (tolerance == 0)
 			return verticesBuilt.get(vertex.hashCode());
-		IShape sh = verticesBuilt.get(vertex.hashCode());
-		if (sh != null) return sh;
-		for (Object v : verticesBuilt.values()) {
-			if (vertex.distance3D(((IShape) v).getLocation().toCoordinate()) <= tolerance) {
-				return (IShape) v;
-			}
+		final IShape sh = verticesBuilt.get(vertex.hashCode());
+		if (sh != null)
+			return sh;
+		for (final Object v : verticesBuilt.values()) {
+			if (vertex.distance3D(
+					GeometryUtils.toCoordinate(((IShape) v).getLocation())) <= tolerance) { return (IShape) v; }
 		}
 		return null;
 	}
 
 	protected void buildByEdgeWithNode(final IScope scope, final IContainer edges, final IContainer vertices) {
-		final Map<ILocation, IAgent> nodes = GamaMapFactory.create(Types.POINT, getType().getKeyType());
+		final GamaMap<ILocation, IAgent> nodes = GamaMapFactory.create(Types.POINT, getType().getKeyType());
 		for (final Object ag : vertices.iterable(scope)) {
 			nodes.put(((IAgent) ag).getLocation(), (IAgent) ag);
 		}
 		for (final Object p : edges.iterable(scope)) {
-			addDrivingEdge(scope, (IShape) p, nodes);
+			final boolean addEdge = addDrivingEdge(scope, (IShape) p, nodes);
+			if (!addEdge)
+				continue;
 			getEdge(p).setWeight(((IShape) p).getPerimeter());
 		}
 	}
 
-	public Object addDrivingEdge(final IScope scope, final IShape e, final Map<ILocation, IAgent> nodes) {
-		if (containsEdge(e)) {
-			return false;
-		}
+	public boolean addDrivingEdge(final IScope scope, final IShape e, final GamaMap<ILocation, IAgent> nodes) {
+		if (containsEdge(e)) { return false; }
 		final Coordinate[] coord = e.getInnerGeometry().getCoordinates();
 		final IShape ptS = new GamaPoint(coord[0]);
 		final IShape ptT = new GamaPoint(coord[coord.length - 1]);
-		IAgent v1 = nodes.get(ptS);
-		if (v1 == null) {
-			v1 = (IAgent) Queries.closest_to(scope, (IContainer<?, ? extends IShape>) nodes.values(), ptS);
-		}
-		IAgent v2 = nodes.get(ptT);
-		if (v2 == null) {
-			v2 = (IAgent) Queries.closest_to(scope, (IContainer<?, ? extends IShape>) nodes.values(), ptT);
-		}
+		final IAgent v1 = nodes.get(ptS);
+		if (v1 == null)
+			return false;
+		final IAgent v2 = nodes.get(ptT);
+		if (v2 == null)
+			return false;
 
 		final IAgent ag = e.getAgent();
 		final List v1ro = (List) v1.getAttribute("roads_out");
@@ -337,7 +322,7 @@ public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
 		}
 		// if ( edge == null ) { return false; }
 		edgeMap.put(e, edge);
-		dispatchEvent(new GraphEvent(scope, this, this, e, null, GraphEventType.EDGE_ADDED));
+		dispatchEvent(scope, new GraphEvent(scope, this, this, e, null, GraphEventType.EDGE_ADDED));
 		return true;
 	}
 
@@ -361,13 +346,18 @@ public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
 		return null; // See if we can identify the species of edges / vertices
 	}
 
+	@Override
+	public IPopulation<? extends IAgent> getPopulation(final IScope scope) {
+		return null;// See if we can identify the populations of edges / vertices
+	}
+
 	/**
 	 * Method getAgents()
 	 * 
 	 * @see msi.gama.metamodel.topology.filter.IAgentFilter#getAgents()
 	 */
 	@Override
-	public IContainer<?, ? extends IShape> getAgents(final IScope scope) {
+	public IContainer<?, ? extends IAgent> getAgents(final IScope scope) {
 		return getEdges();
 	}
 
@@ -390,19 +380,15 @@ public class GamaSpatialGraph extends GamaGraph<IShape, IShape>
 	 */
 	@Override
 	public void filter(final IScope scope, final IShape source, final Collection<? extends IShape> results) {
-		final Iterator<? extends IShape> it = results.iterator();
-		while (it.hasNext()) {
-			if (!edgeMap.containsKey(it.next())) {
-				it.remove();
-			}
-		}
+		results.removeIf(each -> !edgeMap.containsKey(each));
 	}
+
 	public double getTolerance() {
 		return tolerance;
 	}
-	public void setTolerance(double tolerance) {
+
+	public void setTolerance(final double tolerance) {
 		this.tolerance = tolerance;
 	}
-	
 
 }

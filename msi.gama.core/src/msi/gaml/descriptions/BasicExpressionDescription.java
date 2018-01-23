@@ -1,23 +1,28 @@
 /*********************************************************************************************
  *
+ * 'BasicExpressionDescription.java, in plugin msi.gama.core, is part of the source code of the GAMA modeling and
+ * simulation platform. (c) 2007-2016 UMI 209 UMMISCO IRD/UPMC & Partners
  *
- * 'BasicExpressionDescription.java', in plugin 'msi.gama.core', is part of the source code of the
- * GAMA modeling and simulation platform.
- * (c) 2007-2014 UMI 209 UMMISCO IRD/UPMC & Partners
- *
- * Visit https://code.google.com/p/gama-platform/ for license information and developers contact.
- *
+ * Visit https://github.com/gama-platform/gama for license information and developers contact.
+ * 
  *
  **********************************************************************************************/
 package msi.gaml.descriptions;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+
 import org.eclipse.emf.ecore.EObject;
+
 import msi.gama.common.util.StringUtils;
 import msi.gama.precompiler.GamlProperties;
 import msi.gama.util.GAML;
-import msi.gaml.expressions.*;
-import msi.gaml.types.*;
+import msi.gaml.expressions.IExpression;
+import msi.gaml.expressions.TypeExpression;
+import msi.gaml.types.GamaStringType;
+import msi.gaml.types.IType;
+import msi.gaml.types.ITypesManager;
+import msi.gaml.types.Types;
 
 public class BasicExpressionDescription implements IExpressionDescription {
 
@@ -48,16 +53,16 @@ public class BasicExpressionDescription implements IExpressionDescription {
 
 	@Override
 	public void collectMetaInformation(final GamlProperties meta) {
-		if ( expression != null ) {
+		if (expression != null) {
 			expression.collectMetaInformation(meta);
 		}
 	}
 
 	@Override
 	public boolean equals(final Object c) {
-		if ( c == null ) { return false; }
-		if ( c == this ) { return true; }
-		if ( c instanceof IExpressionDescription ) { return ((IExpressionDescription) c).equalsString(toString()); }
+		if (c == null) { return false; }
+		if (c == this) { return true; }
+		if (c instanceof IExpressionDescription) { return ((IExpressionDescription) c).equalsString(toString()); }
 		return false;
 	}
 
@@ -79,7 +84,7 @@ public class BasicExpressionDescription implements IExpressionDescription {
 
 	@Override
 	public IExpression compile(final IDescription context) {
-		if ( expression == null ) {
+		if (expression == null) {
 			expression = GAML.getExpressionFactory().createExpr(this, context);
 		}
 		return expression;
@@ -90,7 +95,7 @@ public class BasicExpressionDescription implements IExpressionDescription {
 	 */
 	@Override
 	public IExpressionDescription compileAsLabel() {
-		IExpressionDescription newEd = LabelExpressionDescription.create(StringUtils.toJavaString(toString()));
+		final IExpressionDescription newEd = LabelExpressionDescription.create(StringUtils.toJavaString(toString()));
 		newEd.setTarget(getTarget());
 		return newEd;
 	}
@@ -121,24 +126,24 @@ public class BasicExpressionDescription implements IExpressionDescription {
 	 */
 	@Override
 	public void setTarget(final EObject newTarget) {
-		if ( target == null ) {
+		if (target == null) {
 			target = newTarget;
 		}
 	}
 
 	@Override
-	public boolean isConstant() {
+	public boolean isConst() {
 		return false;
 	}
 
 	@Override
-	public Set<String> getStrings(final IDescription context, final boolean skills) {
+	public Collection<String> getStrings(final IDescription context, final boolean skills) {
 		return Collections.EMPTY_SET;
 	}
 
 	@Override
 	public IExpressionDescription cleanCopy() {
-		IExpressionDescription result = new BasicExpressionDescription(expression);
+		final IExpressionDescription result = new BasicExpressionDescription(expression);
 		result.setTarget(target);
 		return result;
 	}
@@ -146,9 +151,18 @@ public class BasicExpressionDescription implements IExpressionDescription {
 	@Override
 	public IType getDenotedType(final IDescription context) {
 		compile(context);
-		if ( expression instanceof TypeExpression ) { return expression.getType(); }
-		if (expression.isConst()) return context.getTypeNamed(GamaStringType.staticCast(null, expression.value(null), true));
-		return context.getTypeNamed(expression.literalValue());
+		if (expression == null)
+			return Types.NO_TYPE;
+		if (expression instanceof TypeExpression) { return ((TypeExpression) expression).getDenotedType(); }
+		if (expression.isConst())
+			return context.getTypeNamed(GamaStringType.staticCast(null, expression.value(null), true));
+
+		final String s = expression.literalValue();
+		final ITypesManager tm = context.getModelDescription().getTypesManager();
+		if (tm.containsType(s))
+			return tm.get(s);
+
+		return expression.getType();
 	}
 
 }
