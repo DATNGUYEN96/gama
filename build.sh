@@ -1,10 +1,9 @@
-cd msi.gama.processor &&
-mvn clean install &&
-cd - &&
-cd msi.gama.parent &&
-mvn clean install &&
-cd - &&
-cd  msi.gama.application &&
-mvn clean install -f pom-product.xml &&
+cd ummisco.gama.annotations
+mvn -q clean install
+cd - 
+cd msi.gama.processor 
+mvn -q clean install
+cd - 
+cd msi.gama.parent 
+mvn -q clean install
 cd -
-
